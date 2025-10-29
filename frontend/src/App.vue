@@ -1,6 +1,23 @@
 <script setup>
 import HelloWorld from './components/HelloWorld.vue'
 import TheWelcome from './components/TheWelcome.vue'
+
+// NEU: Unterkomponente + State + Fetch
+import GegenstandList from './components/GegenstandList.vue'
+import { ref, onMounted } from 'vue'
+
+const liste = ref([])
+
+onMounted(async () => {
+  try {
+    const res = await fetch('http://localhost:8080/gegenstaende')
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    liste.value = await res.json()
+  } catch (err) {
+    console.error('Fehler beim Laden / Fallback auf leere Liste:', err)
+    liste.value = []
+  }
+})
 </script>
 
 <template>
@@ -13,7 +30,14 @@ import TheWelcome from './components/TheWelcome.vue'
   </header>
 
   <main>
+    <!-- Belassen: Starter-Komponente -->
     <TheWelcome />
+
+    <!-- NEU: Gegenstand-Liste mit v-for -->
+    <section style="margin-top: 2rem;">
+      <h1>Gegenstände</h1>
+      <GegenstandList :gegenstaende="liste" />
+    </section>
   </main>
 </template>
 
