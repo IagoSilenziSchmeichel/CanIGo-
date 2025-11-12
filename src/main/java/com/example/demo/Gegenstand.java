@@ -52,3 +52,4 @@ public class Gegenstand {
         this.status = status;
     }
 }
+//kommentar
