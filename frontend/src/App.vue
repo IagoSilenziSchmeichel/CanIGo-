@@ -1,12 +1,9 @@
 <script setup>
-import HelloWorld from './components/HelloWorld.vue'
-import TheWelcome from './components/TheWelcome.vue'
-
-// NEU: Unterkomponente + State + Fetch
-import GegenstandList from './components/GegenstandList.vue'
 import { ref, onMounted } from 'vue'
+import GegenstandList from './components/GegenstandList.vue'
 
 const liste = ref([])
+const fehler = ref('')
 
 onMounted(async () => {
   try {
@@ -14,58 +11,34 @@ onMounted(async () => {
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     liste.value = await res.json()
   } catch (err) {
-    console.error('Fehler beim Laden / Fallback auf leere Liste:', err)
-    liste.value = []
+    fehler.value = String(err)
+    // Fallback-Daten, damit du sofort etwas siehst
+    liste.value = [
+      { id: 1, name: 'Rucksack', ort: 'Flur', status: 'wichtig' },
+      { id: 2, name: 'Waffeleisen', ort: 'Küche', status: 'selten genutzt' }
+    ]
   }
 })
 </script>
 
 <template>
-  <header>
-    <img alt="Vue logo" class="logo" src="./assets/logo.svg" width="125" height="125" />
+  <main class="app-container">
+    <h1>$$$ Mein Inventar $$$</h1>
 
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
-    </div>
-  </header>
+    <p v-if="fehler" style="opacity:.7;font-size:.9rem">
+      (Hinweis: {{ fehler }} – zeige Demo-Daten)
+    </p>
 
-  <main>
-    <!-- Belassen: Starter-Komponente -->
-    <TheWelcome />
-
-    <!-- NEU: Gegenstand-Liste mit v-for -->
-    <section style="margin-top: 2rem;">
-      <h1>Gegenstände</h1>
-      <GegenstandList :gegenstaende="liste" />
-    </section>
+    <!-- WICHTIG: Prop übergeben -->
+    <GegenstandList :gegenstaende="liste" />
   </main>
 </template>
 
 <style scoped>
-header {
-  line-height: 1.5;
+.app-container{
+  min-height:100vh; width:100%;
+  max-width:1100px; margin:0 auto; padding:2rem 1rem 3rem;
+  display:flex; flex-direction:column; align-items:center;
 }
-
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
-}
-
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
-
-  .logo {
-    margin: 0 2rem 0 0;
-  }
-
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
-}
+h1{ margin:0 0 1rem; color:#2e7d32 }
 </style>

@@ -1,43 +1,42 @@
-<template>
-  <section>
-    <h2>Liste der Gegenstände</h2>
+<script setup>
+const props = defineProps({
+  gegenstaende: { type: Array, default: () => [] }
+})
+</script>
 
-    <!-- v-for rendert alle Gegenstände -->
-    <ul>
-      <li v-for="g in gegenstaende" :key="g.id">
-        <strong>{{ g.name }}</strong><br />
-        Ort: {{ g.ort }}<br />
-        Status: {{ g.status }}
+<template>
+  <section class="list-wrap">
+    <h2 class="list-title">Deine Gegenstände</h2>
+
+    <p v-if="props.gegenstaende.length === 0" class="empty">
+      Keine Gegenstände vorhanden.
+    </p>
+
+    <ul v-else class="grid">
+      <li v-for="g in props.gegenstaende" :key="g.id" class="card">
+        <div class="title">{{ g.name }}</div>
+        <div class="meta">
+          <span>📍 {{ g.ort || '—' }}</span>
+          <span>🛈 {{ g.status || '—' }}</span>
+        </div>
       </li>
     </ul>
-
-    <!-- Falls keine Daten vorhanden sind -->
-    <p v-if="gegenstaende.length === 0">Keine Gegenstände vorhanden.</p>
   </section>
 </template>
 
-<script setup>
-// Props = Daten, die von der Elternkomponente (App.vue) übergeben werden
-defineProps({
-  gegenstaende: {
-    type: Array,
-    default: () => []
-  }
-});
-</script>
-
 <style scoped>
-ul {
-  list-style-type: none;
-  padding: 0;
-  margin: 0;
+.list-wrap{ width:100%; max-width:900px; padding:1rem }
+.list-title{ text-align:center; margin-bottom:1rem; color:#2e7d32 }
+.empty{ text-align:center; opacity:.8; margin-top:2rem }
+.grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
+  gap:1.2rem; list-style:none; padding:0; margin:0 }
+.card{
+  background:rgba(255,255,255,.55);
+  backdrop-filter:blur(12px) saturate(120%); -webkit-backdrop-filter:blur(12px) saturate(120%);
+  border:1px solid rgba(70,90,60,.15); border-radius:16px; padding:1rem;
+  box-shadow:0 6px 16px rgba(56,82,61,.15); transition:.25s;
 }
-
-li {
-  margin-bottom: 0.5rem;
-  padding: 0;
-  background: transparent; /* keine Box mehr */
-  color: inherit;          /* übernimmt Standardtextfarbe */
-}
+.card:hover{ transform:translateY(-4px); background:rgba(255,255,255,.75) }
+.title{ font-weight:600; margin-bottom:.4rem; color:#1b3b22 }
+.meta{ display:flex; gap:.5rem; flex-wrap:wrap; color:#3c4f3c }
 </style>
-
