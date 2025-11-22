@@ -3,17 +3,14 @@ package com.example.demo;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
-
 import java.util.List;
 
-@CrossOrigin(origins = "http://localhost:5173")
 @RestController
 public class GegenstandController {
 
-    // 1. Einfache URL, genau wie im "/todos"-Beispiel
+    @CrossOrigin
     @GetMapping("/gegenstaende")
     public List<Gegenstand> getAlleGegenstaende() {
-
         return List.of(
                 new Gegenstand(1L, "Alte Winterreifen", "Keller", "Wegwerfen"),
                 new Gegenstand(2L, "Comic-Sammlung", "Dachboden", "Behalten"),
