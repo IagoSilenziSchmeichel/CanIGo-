@@ -7,7 +7,8 @@ const fehler = ref('')
 
 onMounted(async () => {
   try {
-    const res = await fetch('http://localhost:8080/gegenstaende')
+    // const res = await fetch('http://localhost:8080/gegenstaende')
+    const res = await fetch('https://canigo.onrender.com/gegenstaende')
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     liste.value = await res.json()
   } catch (err) {
