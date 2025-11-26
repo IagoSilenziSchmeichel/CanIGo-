@@ -1,22 +1,27 @@
+/* src/assets/main.css */
 @import './base.css';
 
 /* Vollbild und Hintergrund */
-html, body, #app { height: 100%; min-height: 100vh; }
-body{
-    margin:0;
-    background:
-            linear-gradient(180deg, #eaf6ef 0%, #f4fbf7 100%),
-            url('@/assets/forest-texture.png'); /* oder dein inline-SVG */
-    background-repeat: repeat;
-    background-size: cover, 240px 240px;
-    background-attachment: fixed;
-    color:#1a2e1a;
-    font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, sans-serif;
+html,
+body,
+#app {
+    height: 100%;
+    min-height: 100vh;
+    margin: 0;
 }
 
-/* Starter-Layout deaktivieren */
-#app { max-width:none; margin:0; padding:0; font-weight:normal; }
-@media (min-width:1024px){
-    body{ display:block; place-items:initial; }
-    #app{ display:block; grid-template-columns:none; padding:0; }
+body {
+    margin: 0;
+    background: url('./gifmeer.png') center / cover no-repeat fixed;
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+/* Hintergrund bewegt sich */
+@keyframes bgScroll {
+    0% {
+        background-position: 0 0;
+    }
+    100% {
+        background-position: -2000px 0;
+    }
 }

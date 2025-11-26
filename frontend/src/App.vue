@@ -28,6 +28,10 @@ onMounted(async () => {
 
 <template>
   <main class="app-container">
+
+    <!-- 🌟 Dein eigenes Logo -->
+    <img src="@/assets/meinlogo.png" alt="Logo" class="logo" />
+
     <h1>$$$ Mein Inventar $$$</h1>
 
     <p v-if="fehler" style="opacity:.7;font-size:.9rem">
