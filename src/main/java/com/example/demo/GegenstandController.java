@@ -2,7 +2,6 @@ package com.example.demo;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 @CrossOrigin(origins = "*")
@@ -10,17 +9,15 @@ import java.util.List;
 public class GegenstandController {
 
     @Autowired
-    private GegenstandRepository repo; // Verbindung zur Datenbank
+    private GegenstandService service; // <-- Hier nutzen wir jetzt den Service!
 
-    // GET: Alle holen (aus der DB)
     @GetMapping("/gegenstaende")
     public List<Gegenstand> getAlleGegenstaende() {
-        return repo.findAll();
+        return service.getAll();
     }
 
-    // POST: Neuen erstellen (in die DB speichern)
     @PostMapping("/gegenstaende")
     public Gegenstand createGegenstand(@RequestBody Gegenstand g) {
-        return repo.save(g);
+        return service.save(g);
     }
 }
