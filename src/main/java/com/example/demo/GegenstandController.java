@@ -1,21 +1,26 @@
 package com.example.demo;
 
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 
+@CrossOrigin(origins = "*")
 @RestController
 public class GegenstandController {
 
-    @CrossOrigin
+    @Autowired
+    private GegenstandRepository repo; // Verbindung zur Datenbank
+
+    // GET: Alle holen (aus der DB)
     @GetMapping("/gegenstaende")
     public List<Gegenstand> getAlleGegenstaende() {
-        return List.of(
-                new Gegenstand(1L, "Alte Winterreifen", "Keller", "Wegwerfen"),
-                new Gegenstand(2L, "Comic-Sammlung", "Dachboden", "Behalten"),
-                new Gegenstand(3L, "Kaputte Kaffeemaschine", "Küche", "Wegwerfen"),
-                new Gegenstand(4L, "Omas altes Porzellan", "Keller", "Verkaufen")
-        );
+        return repo.findAll();
+    }
+
+    // POST: Neuen erstellen (in die DB speichern)
+    @PostMapping("/gegenstaende")
+    public Gegenstand createGegenstand(@RequestBody Gegenstand g) {
+        return repo.save(g);
     }
 }
