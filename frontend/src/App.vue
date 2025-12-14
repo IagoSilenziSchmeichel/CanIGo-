@@ -67,7 +67,31 @@ onMounted(() => {
 
 <style>
 /* Kleines bisschen Style für das Formular */
-.form-box { margin-bottom: 2rem; display: flex; gap: 10px; justify-content: center; }
-input { padding: 8px; border-radius: 4px; border: 1px solid #ccc; }
-button { padding: 8px 16px; background: #2e7d32; color: white; border: none; border-radius: 4px; cursor: pointer; }
+.form-box {
+  margin-bottom: 2rem;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+input {
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  color: black;          /* <-- Text im Eingabefeld schwarz */
+}
+
+button {
+  padding: 8px 16px;
+  background: #2e7d32;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* <<< DAS ist für die Einträge in der Liste >>> */
+li {
+  color: black;
+}
 </style>
