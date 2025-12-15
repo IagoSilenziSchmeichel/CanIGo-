@@ -1,7 +1,9 @@
 package com.example.demo;
 
 import com.example.demo.dto.GegenstandCreateDto;
+import com.example.demo.error.NotFoundException;
 import org.springframework.stereotype.Service;
+import com.example.demo.error.NotFoundException;
 
 import java.util.List;
 
@@ -22,20 +24,19 @@ public class GegenstandService {
 
     public Gegenstand getById(Long id) {
         return repo.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Gegenstand nicht gefunden: " + id));
-    }
-
-    public Gegenstand update(Long id, GegenstandCreateDto dto) {
-        Gegenstand g = getById(id);
-        applyDto(g, dto);
-        return repo.save(g);
+                .orElseThrow(() -> new NotFoundException("Gegenstand nicht gefunden: " + id));
     }
 
     public void delete(Long id) {
         if (!repo.existsById(id)) {
-            throw new IllegalArgumentException("Gegenstand nicht gefunden: " + id);
+            throw new NotFoundException("Gegenstand nicht gefunden: " + id);
         }
         repo.deleteById(id);
+    }
+    public Gegenstand update(Long id, GegenstandCreateDto dto) {
+        Gegenstand g = getById(id);
+        applyDto(g, dto);
+        return repo.save(g);
     }
 
     private void applyDto(Gegenstand g, GegenstandCreateDto dto){

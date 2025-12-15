@@ -15,23 +15,17 @@ public class ErrorHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> handleValidation(MethodArgumentNotValidException ex) {
-
         Map<String, String> errors = new HashMap<>();
-
         for (FieldError err : ex.getBindingResult().getFieldErrors()) {
             errors.put(err.getField(), err.getDefaultMessage());
         }
-
-        return ResponseEntity.badRequest().body(errors);
+        return ResponseEntity.badRequest().body(errors); // 400
     }
 
-    //  Allgemeiner "Bad Request" (z.B. IllegalArgumentException) -> 400
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Map<String, String>> handleIllegalArgument(IllegalArgumentException ex) {
-
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleNotFound(NotFoundException ex) {
         Map<String, String> body = new HashMap<>();
         body.put("error", ex.getMessage());
-
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body); // 404
     }
 }
