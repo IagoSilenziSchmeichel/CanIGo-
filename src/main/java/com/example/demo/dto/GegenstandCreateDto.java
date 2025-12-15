@@ -20,7 +20,7 @@ public class GegenstandCreateDto {
     private Wichtigkeit wichtigkeit;
 
     @NotNull
-    private GegenstandKategorie kategorie; //bevor wir jetzt weiter machen, kannst du mir kurz ein commit satz erstellen der alles was wir in den letzten schritten zusammenfässt damit ich das mit meinem partner teilen kann
+    private GegenstandKategorie kategorie;
 
     private LocalDate lastUsed;
     private LocalDate wegwerfAm;
