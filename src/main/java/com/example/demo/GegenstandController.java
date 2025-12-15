@@ -1,7 +1,10 @@
 package com.example.demo;
 
+import com.example.demo.dto.GegenstandCreateDto;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 
 @CrossOrigin(origins = "*")
@@ -9,7 +12,7 @@ import java.util.List;
 public class GegenstandController {
 
     @Autowired
-    private GegenstandService service; // <-- Hier nutzen wir jetzt den Service!
+    private GegenstandService service;
 
     @GetMapping("/gegenstaende")
     public List<Gegenstand> getAlleGegenstaende() {
@@ -17,7 +20,7 @@ public class GegenstandController {
     }
 
     @PostMapping("/gegenstaende")
-    public Gegenstand createGegenstand(@RequestBody Gegenstand g) {
-        return service.save(g);
+    public Gegenstand createGegenstand(@Valid @RequestBody GegenstandCreateDto dto) {
+        return service.saveFromDto(dto);
     }
 }
