@@ -1,10 +1,11 @@
 package com.example.demo.error;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.validation.FieldError;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -22,5 +23,15 @@ public class ErrorHandler {
         }
 
         return ResponseEntity.badRequest().body(errors);
+    }
+
+    //  Allgemeiner "Bad Request" (z.B. IllegalArgumentException) -> 400
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, String>> handleIllegalArgument(IllegalArgumentException ex) {
+
+        Map<String, String> body = new HashMap<>();
+        body.put("error", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 }

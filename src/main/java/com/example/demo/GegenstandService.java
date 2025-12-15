@@ -14,14 +14,41 @@ public class GegenstandService {
         this.repo = repo;
     }
 
-    public Gegenstand saveFromDto(GegenstandCreateDto dto) {
+    public Gegenstand create(GegenstandCreateDto dto) {
         Gegenstand g = new Gegenstand();
-        g.setName(dto.getName());
-        g.setOrt(dto.getOrt());
-        g.setStatus(dto.getStatus() == null ? "Neu" : dto.getStatus());
+        applyDto(g, dto);
         return repo.save(g);
     }
 
+    public Gegenstand getById(Long id) {
+        return repo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Gegenstand nicht gefunden: " + id));
+    }
+
+    public Gegenstand update(Long id, GegenstandCreateDto dto) {
+        Gegenstand g = getById(id);
+        applyDto(g, dto);
+        return repo.save(g);
+    }
+
+    public void delete(Long id) {
+        if (!repo.existsById(id)) {
+            throw new IllegalArgumentException("Gegenstand nicht gefunden: " + id);
+        }
+        repo.deleteById(id);
+    }
+
+    private void applyDto(Gegenstand g, GegenstandCreateDto dto){
+        g.setName(dto.getName());
+               g.setOrt(dto.getOrt());
+               g.setWichtigkeit(dto.getWichtigkeit());
+               g.setKategorie(dto.getKategorie());
+               g.setLastUsed(dto.getLastUsed());
+               g.setWegwerfAm(dto.getWegwerfAm());
+                g.setKaufpreis(dto.getKaufpreis());
+              g.setWunschVerkaufpreis(dto.getWunschVerkaufpreis());
+
+    }
     public List<Gegenstand> getAll() {
         return repo.findAll();
     }
