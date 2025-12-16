@@ -4,6 +4,7 @@ import com.example.demo.dto.GegenstandCreateDto;
 import org.springframework.stereotype.Service;
 import com.example.demo.error.NotFoundException;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -36,6 +37,10 @@ public class GegenstandService {
         Gegenstand g = getById(id);
         applyDto(g, dto);
         return repo.save(g);
+    }
+    public boolean istWegwerfbar() {
+        LocalDate lastUsed = null;
+        return lastUsed != null && lastUsed.isBefore(LocalDate.now().minusMonths(6));
     }
 
     private void applyDto(Gegenstand g, GegenstandCreateDto dto){

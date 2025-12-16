@@ -26,15 +26,6 @@ async function ladeDaten() {
     fehler.value = String(e)
   }
 }
-function toNumberOrNull(v) {
-  if (v === '' || v === null || v === undefined) return null
-  const n = Number(v)
-  return Number.isFinite(n) ? n : null
-}
-
-function toStringOrNull(v) {
-  return v && String(v).trim() ? String(v).trim() : null
-}
 
 async function speichern() {
   fehler.value = ''
@@ -87,7 +78,7 @@ onMounted(() => {
 
 <template>
   <main class="app-container">
-    <h1>$$$ Mein Inventar $$$</h1>
+    <h1>Can I Go?</h1>
 
     <p v-if="fehler" class="error">{{ fehler }}</p>
 
@@ -164,11 +155,11 @@ onMounted(() => {
             <span class="badge ghost">{{ g.kategorie }}</span>
           </div>
 
-          <div class="card-row">📍 Ort: <span>{{ g.ort }}</span></div>
-          <div class="card-row">🗓️ Zuletzt: <span>{{ g.lastUsed ?? '—' }}</span></div>
-          <div class="card-row">🗑️ Wegwerf am: <span>{{ g.wegwerfAm ?? '—' }}</span></div>
-          <div class="card-row">💶 Kaufpreis: <span>{{ g.kaufpreis ?? '—' }}</span></div>
-          <div class="card-row">🏷️ Wunschpreis: <span>{{ g.wunschVerkaufpreis ?? '—' }}</span></div>
+          <div class="card-row">Ort: <span>{{ g.ort }}</span></div>
+          <div class="card-row">Zuletzt: <span>{{ g.lastUsed ?? '—' }}</span></div>
+          <div class="card-row">Wegwerf am: <span>{{ g.wegwerfAm ?? '—' }}</span></div>
+          <div class="card-row">Kaufpreis: <span>{{ g.kaufpreis ?? '—' }}</span></div>
+          <div class="card-row">Wunschpreis: <span>{{ g.wunschVerkaufpreis ?? '—' }}</span></div>
         </li>
       </ul>
     </section>
