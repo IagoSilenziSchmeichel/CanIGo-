@@ -3,79 +3,60 @@ import { ref, onMounted } from 'vue'
 
 const liste = ref([])
 const fehler = ref('')
-
+// Variablen für das Formular
 const neuerName = ref('')
 const neuerOrt = ref('')
 
 const baseUrl = import.meta.env.VITE_APP_BACKEND_BASE_URL
-const endpoint = `${baseUrl}/gegenstaende`
+const endpoint = baseUrl + '/gegenstaende'
 
+// Daten laden (GET)
 async function ladeDaten() {
-  fehler.value = ''
   try {
     const res = await fetch(endpoint)
-    if (!res.ok) throw new Error(`GET fehlgeschlagen: HTTP ${res.status}`)
     liste.value = await res.json()
   } catch (e) {
-    fehler.value = String(e)
+    fehler.value = 'Fehler beim Laden.'
   }
 }
 
+// Daten speichern (POST) - Das ist neu für M4!
 async function speichern() {
-  fehler.value = ''
-
-  // Mini-Check: nicht leer speichern
-  if (!neuerName.value.trim() || !neuerOrt.value.trim()) {
-    fehler.value = 'Bitte Name und Ort ausfüllen.'
-    return
-  }
-
   const neuerGegenstand = {
-    name: neuerName.value.trim(),
-    ort: neuerOrt.value.trim(),
-    status: 'Neu' ,
-
-    wichtigkeit: "WICHTIG",
-    kategorie: "HAUSHALT",
-
-    // optional (kann null sein)
-    lastUsed: null,
-    wegwerfAm: null,
-    kaufpreis: null,
-    wunschVerkaufpreis: null
+    name: neuerName.value,
+    ort: neuerOrt.value,
+    status: 'Neu'
   }
 
-  try {
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(neuerGegenstand)
-    })
-    if (!res.ok) throw new Error(`POST fehlgeschlagen: HTTP ${res.status}`)
+  await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(neuerGegenstand)
+  })
 
-    neuerName.value = ''
-    neuerOrt.value = ''
-    await ladeDaten()
-  } catch (e) {
-    fehler.value = String(e)
-  }
+  // Felder leeren und Liste neu laden
+  neuerName.value = ''
+  neuerOrt.value = ''
+  ladeDaten()
 }
 
-onMounted(ladeDaten)
+onMounted(() => {
+  ladeDaten()
+})
 </script>
 
 <template>
   <main class="app-container">
     <h1>$$$ Mein Inventar $$$</h1>
 
-    <p v-if="fehler" class="error">{{ fehler }}</p>
-
+    <!-- Das neue Formular -->
     <div class="form-box">
       <input v-model="neuerName" placeholder="Name (z.B. Hammer)" />
       <input v-model="neuerOrt" placeholder="Ort (z.B. Werkbank)" />
       <button @click="speichern">Hinzufügen</button>
     </div>
 
+    <!-- Deine Liste (bleibt fast gleich) -->
     <ul class="grid">
       <li v-for="g in liste" :key="g.id" class="card">
         {{ g.name }} ({{ g.ort }})
@@ -84,23 +65,8 @@ onMounted(ladeDaten)
   </main>
 </template>
 
-<style scoped>
-.app-container{
-  min-height:100vh;
-  width:100%;
-  max-width:1100px;
-  margin:0 auto;
-  padding:2rem 1rem 3rem;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-}
-
-.error{
-  margin: .5rem 0 1rem;
-  color: #b00020;
-}
-
+<style>
+/* Kleines bisschen Style für das Formular */
 .form-box {
   margin-bottom: 2rem;
   display: flex;
@@ -112,7 +78,7 @@ input {
   padding: 8px;
   border-radius: 4px;
   border: 1px solid #ccc;
-  color: black;
+  color: black;          /* <-- Text im Eingabefeld schwarz */
 }
 
 button {
@@ -124,15 +90,8 @@ button {
   cursor: pointer;
 }
 
-.grid{
-  list-style:none;
-  padding:0;
-  margin:0;
-  display:grid;
-  gap: 12px;
-}
-
-.card{
-  color:black;
+/* <<< DAS ist für die Einträge in der Liste >>> */
+li {
+  color: black;
 }
 </style>
