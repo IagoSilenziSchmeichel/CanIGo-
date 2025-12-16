@@ -1,51 +1,80 @@
+<script setup>
+import { ref, onMounted } from 'vue'
+
+const liste = ref([])
+const fehler = ref('')
+
+const name = ref('')
+const ort = ref('')
+const wichtigkeit = ref('WICHTIG')         // default
+const kategorie = ref('HAUSHALT')           // default
+const lastUsed = ref('')                    // yyyy-mm-dd (Input type=date)
+const wegwerfAm = ref('')                   // yyyy-mm-dd
+const kaufpreis = ref('')                   // number
+const wunschVerkaufpreis = ref('')
+
+const baseUrl = import.meta.env.VITE_APP_BACKEND_BASE_URL
+const endpoint = `${baseUrl}/gegenstaende`
+
+async function ladeDaten() {
+  fehler.value = ''
+  try {
+    const res = await fetch(endpoint)
+    if (!res.ok) throw new Error(`GET fehlgeschlagen: HTTP ${res.status}`)
+    liste.value = await res.json()
+  } catch (e) {
+    fehler.value = String(e)
+  }
+}
+
 async function speichern() {
-fehler.value = ''
+  fehler.value = ''
 
-if (!name.value.trim() || !ort.value.trim()) {
-fehler.value = 'Bitte Name und Ort ausfüllen.'
-return
-}
+  if (!name.value.trim() || !ort.value.trim()) {
+    fehler.value = 'Bitte Name und Ort ausfüllen.'
+    return
+  }
 
-const neuerGegenstand = {
-name: name.value.trim(),
-ort: ort.value.trim(),
-wichtigkeit: wichtigkeit.value,
-kategorie: kategorie.value,
+  const neuerGegenstand = {
+    name: name.value.trim(),
+    ort: ort.value.trim(),
+    wichtigkeit: wichtigkeit.value,
+    kategorie: kategorie.value,
 
-// wenn leer -> null, sonst Datum-String "YYYY-MM-DD"
-lastUsed: lastUsed.value ? lastUsed.value : null,
-wegwerfAm: wegwerfAm.value ? wegwerfAm.value : null,
+    // wenn leer -> null, sonst Datum-String "YYYY-MM-DD"
+    lastUsed: lastUsed.value ? lastUsed.value : null,
+    wegwerfAm: wegwerfAm.value ? wegwerfAm.value : null,
 
-// wenn leer -> null, sonst Zahl
-kaufpreis: kaufpreis.value !== '' ? Number(kaufpreis.value) : null,
-wunschVerkaufpreis: wunschVerkaufpreis.value !== '' ? Number(wunschVerkaufpreis.value) : null
-}
+    // wenn leer -> null, sonst Zahl
+    kaufpreis: kaufpreis.value !== '' ? Number(kaufpreis.value) : null,
+    wunschVerkaufpreis: wunschVerkaufpreis.value !== '' ? Number(wunschVerkaufpreis.value) : null
+  }
 
-try {
-const res = await fetch(endpoint, {
-method: 'POST',
-headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify(neuerGegenstand)
-})
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(neuerGegenstand)
+    })
 
-// Wenn Backend Fehlertext/JSON zurückgibt, zeigen wir es an:
-if (!res.ok) {
-const text = await res.text()
-throw new Error(`POST fehlgeschlagen: HTTP ${res.status} – ${text}`)
-}
+    // Wenn Backend Fehlertext/JSON zurückgibt, zeigen wir es an:
+    if (!res.ok) {
+      const text = await res.text()
+      throw new Error(`POST fehlgeschlagen: HTTP ${res.status} – ${text}`)
+    }
 
-// Felder leeren
-name.value = ''
-ort.value = ''
-lastUsed.value = ''
-wegwerfAm.value = ''
-kaufpreis.value = ''
-wunschVerkaufpreis.value = ''
+    // Felder leeren
+    name.value = ''
+    ort.value = ''
+    lastUsed.value = ''
+    wegwerfAm.value = ''
+    kaufpreis.value = ''
+    wunschVerkaufpreis.value = ''
 
-await ladeDaten()
-} catch (e) {
-fehler.value = String(e)
-}
+    await ladeDaten()
+  } catch (e) {
+    fehler.value = String(e)
+  }
 }
 
 onMounted(() => {
