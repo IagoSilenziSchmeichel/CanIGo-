@@ -6,5 +6,6 @@ public enum GegenstandKategorie {
     REISE,
     ELEKTRONIK,
     KLEIDUNG,
-    SONSTIGES
+    SONSTIGES,
+    TECH
 }

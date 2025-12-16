@@ -6,5 +6,6 @@ public enum Wichtigkeit {
     SELTEN_GENUTZT,
     UNWICHTIG,
     MUELL,
-    VERKAUFEN
+    VERKAUFEN,
+    MITTEL
 }
