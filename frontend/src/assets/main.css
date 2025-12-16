@@ -1,27 +1,47 @@
 /* src/assets/main.css */
 @import './base.css';
 
-/* Vollbild und Hintergrund */
-html,
-body,
-#app {
+:root{
+    /* Superlist-ish Neutrals */
+    --bg: #f6f7fb;
+    --card: rgba(255,255,255,.72);
+    --card-solid: #ffffff;
+    --text: #0f172a;
+    --muted: rgba(15, 23, 42, .6);
+    --border: rgba(15, 23, 42, .08);
+
+    /* Accent (Superlist nutzt oft kräftige Akzentfarbe) */
+    --accent: #6d28d9;
+    --accent-2: #22c55e;
+
+    --shadow: 0 12px 30px rgba(15, 23, 42, .08);
+    --shadow-soft: 0 6px 16px rgba(15, 23, 42, .06);
+
+    --radius: 18px;
+}
+
+html, body, #app {
     height: 100%;
     min-height: 100vh;
     margin: 0;
 }
 
-body {
-    margin: 0;
-    background: url('./gifmeer.png') center / cover no-repeat fixed;
-    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+body{
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--text);
+
+    /* Clean background + subtle gradients like Superlist */
+    background:
+            radial-gradient(900px 500px at 15% 10%, rgba(109,40,217,.10), transparent 60%),
+            radial-gradient(900px 500px at 85% 15%, rgba(34,197,94,.10), transparent 60%),
+            radial-gradient(900px 700px at 50% 90%, rgba(15,23,42,.06), transparent 60%),
+            var(--bg);
 }
 
-/* Hintergrund bewegt sich */
-@keyframes bgScroll {
-    0% {
-        background-position: 0 0;
-    }
-    100% {
-        background-position: -2000px 0;
-    }
+/* Vite template setzt oft #app max-width + grid -> das killt Fullscreen */
+#app{
+    width: 100%;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
 }
