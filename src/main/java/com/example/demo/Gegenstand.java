@@ -1,38 +1,86 @@
 package com.example.demo;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
-@Entity // WICHTIG: Macht es zur Datenbank-Tabelle
+import java.math.BigDecimal;
+import java.time.LocalDate;
+
+@Entity
 public class Gegenstand {
 
-    @Id // Das ist der Primärschlüssel
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // Automatische ID (1, 2, 3...)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank
     private String name;
+
+    @NotBlank
     private String ort;
-    private String status;
 
-    // Leerer Konstruktor (Pflicht für JPA!)
-    public Gegenstand() {
-    }
+    @NotNull
+    @Enumerated(EnumType.STRING)
+    private Wichtigkeit wichtigkeit;
 
-    public Gegenstand(String name, String ort, String status) {
+    @NotNull
+    @Enumerated(EnumType.STRING)
+    private GegenstandKategorie kategorie;
+
+    private LocalDate lastUsed;     // zuletzt benutzt
+    private LocalDate wegwerfAm;    // ab wann ok wegzuwerfen
+
+    private BigDecimal kaufpreis;           // Kaufpreis
+    private BigDecimal wunschVerkaufpreis;  // Wunsch-Verkaufspreis
+
+    public Gegenstand() {}
+
+    // Optional: Constructor ohne id (id wird von DB gesetzt)
+    public Gegenstand(
+            String name,
+            String ort,
+            Wichtigkeit wichtigkeit,
+            GegenstandKategorie kategorie,
+            LocalDate lastUsed,
+            LocalDate wegwerfAm,
+            BigDecimal kaufpreis,
+            BigDecimal wunschVerkaufpreis
+    ) {
         this.name = name;
         this.ort = ort;
-        this.status = status;
+        this.wichtigkeit = wichtigkeit;
+        this.kategorie = kategorie;
+        this.lastUsed = lastUsed;
+        this.wegwerfAm = wegwerfAm;
+        this.kaufpreis = kaufpreis;
+        this.wunschVerkaufpreis = wunschVerkaufpreis;
     }
 
-    // Getter und Setter (wie vorher lassen)
+    // Getter/Setter
     public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
+
     public String getOrt() { return ort; }
     public void setOrt(String ort) { this.ort = ort; }
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
+
+    public Wichtigkeit getWichtigkeit() { return wichtigkeit; }
+    public void setWichtigkeit(Wichtigkeit wichtigkeit) { this.wichtigkeit = wichtigkeit; }
+
+    public GegenstandKategorie getKategorie() { return kategorie; }
+    public void setKategorie(GegenstandKategorie kategorie) { this.kategorie = kategorie; }
+
+    public LocalDate getLastUsed() { return lastUsed; }
+    public void setLastUsed(LocalDate lastUsed) { this.lastUsed = lastUsed; }
+
+    public LocalDate getWegwerfAm() { return wegwerfAm; }
+    public void setWegwerfAm(LocalDate wegwerfAm) { this.wegwerfAm = wegwerfAm; }
+
+    public BigDecimal getKaufpreis() { return kaufpreis; }
+    public void setKaufpreis(BigDecimal kaufpreis) { this.kaufpreis = kaufpreis; }
+
+    public BigDecimal getWunschVerkaufpreis() { return wunschVerkaufpreis; }
+    public void setWunschVerkaufpreis(BigDecimal wunschVerkaufpreis) { this.wunschVerkaufpreis = wunschVerkaufpreis; }
 }

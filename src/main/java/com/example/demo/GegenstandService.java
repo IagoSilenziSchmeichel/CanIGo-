@@ -1,22 +1,55 @@
 package com.example.demo;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import com.example.demo.dto.GegenstandCreateDto;
 import org.springframework.stereotype.Service;
+import com.example.demo.error.NotFoundException;
+
 import java.util.List;
 
 @Service
 public class GegenstandService {
 
-    @Autowired
-    private GegenstandRepository repo;
+    private final GegenstandRepository repo;
 
-    public Gegenstand save(Gegenstand g) {
+    public GegenstandService(GegenstandRepository repo) {
+        this.repo = repo;
+    }
+
+    public Gegenstand create(GegenstandCreateDto dto) {
+        Gegenstand g = new Gegenstand();
+        applyDto(g, dto);
         return repo.save(g);
     }
 
+    public Gegenstand getById(Long id) {
+        return repo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Gegenstand nicht gefunden: " + id));
+    }
+
+    public void delete(Long id) {
+        if (!repo.existsById(id)) {
+            throw new NotFoundException("Gegenstand nicht gefunden: " + id);
+        }
+        repo.deleteById(id);
+    }
+    public Gegenstand update(Long id, GegenstandCreateDto dto) {
+        Gegenstand g = getById(id);
+        applyDto(g, dto);
+        return repo.save(g);
+    }
+
+    private void applyDto(Gegenstand g, GegenstandCreateDto dto){
+        g.setName(dto.getName());
+        g.setOrt(dto.getOrt());
+        g.setWichtigkeit(dto.getWichtigkeit());
+        g.setKategorie(dto.getKategorie());
+        g.setLastUsed(dto.getLastUsed());
+        g.setWegwerfAm(dto.getWegwerfAm());
+        g.setKaufpreis(dto.getKaufpreis());
+        g.setWunschVerkaufpreis(dto.getWunschVerkaufpreis());
+
+    }
     public List<Gegenstand> getAll() {
-        // repo.findAll() gibt ein Iterable zurück, wir wandeln es in eine Liste um
-        // (oder wir ändern den Rückgabetyp, aber so ist es wie beim Prof)
-        return (List<Gegenstand>) repo.findAll();
+        return repo.findAll();
     }
 }
