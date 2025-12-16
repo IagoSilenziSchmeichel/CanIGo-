@@ -33,7 +33,16 @@ async function speichern() {
   const neuerGegenstand = {
     name: neuerName.value.trim(),
     ort: neuerOrt.value.trim(),
-    status: 'Neu'
+    status: 'Neu' ,
+
+    wichtigkeit: "WICHTIG",
+    kategorie: "HAUSHALT",
+
+    // optional (kann null sein)
+    lastUsed: null,
+    wegwerfAm: null,
+    kaufpreis: null,
+    wunschVerkaufpreis: null
   }
 
   try {
