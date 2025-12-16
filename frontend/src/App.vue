@@ -1,74 +1,51 @@
-<script setup>
-import { ref, onMounted } from 'vue'
+async function speichern() {
+fehler.value = ''
 
-const liste = ref([])
-const fehler = ref('')
-
-const name = ref('')
-const ort = ref('')
-const wichtigkeit = ref('WICHTIG')         // default
-const kategorie = ref('HAUSHALT')           // default
-const lastUsed = ref('')                    // yyyy-mm-dd (Input type=date)
-const wegwerfAm = ref('')                   // yyyy-mm-dd
-const kaufpreis = ref('')                   // number
-const wunschVerkaufpreis = ref('')
-
-const baseUrl = import.meta.env.VITE_APP_BACKEND_BASE_URL
-const endpoint = `${baseUrl}/gegenstaende`
-
-async function ladeDaten() {
-  fehler.value = ''
-  try {
-    const res = await fetch(endpoint)
-    if (!res.ok) throw new Error(`GET fehlgeschlagen: HTTP ${res.status}`)
-    liste.value = await res.json()
-  } catch (e) {
-    fehler.value = String(e)
-  }
+if (!name.value.trim() || !ort.value.trim()) {
+fehler.value = 'Bitte Name und Ort ausfüllen.'
+return
 }
 
-async function speichern() {
-  fehler.value = ''
+const neuerGegenstand = {
+name: name.value.trim(),
+ort: ort.value.trim(),
+wichtigkeit: wichtigkeit.value,
+kategorie: kategorie.value,
 
-  // Mini-Check: nicht leer speichern
-  if (!neuerName.value.trim() || !neuerOrt.value.trim()) {
-    fehler.value = 'Bitte Name und Ort ausfüllen.'
-    return
-  }
+// wenn leer -> null, sonst Datum-String "YYYY-MM-DD"
+lastUsed: lastUsed.value ? lastUsed.value : null,
+wegwerfAm: wegwerfAm.value ? wegwerfAm.value : null,
 
-  const neuerGegenstand = {
-    name: neuerName.value.trim(),
-    ort: neuerOrt.value.trim(),
-    status: 'Neu' ,
+// wenn leer -> null, sonst Zahl
+kaufpreis: kaufpreis.value !== '' ? Number(kaufpreis.value) : null,
+wunschVerkaufpreis: wunschVerkaufpreis.value !== '' ? Number(wunschVerkaufpreis.value) : null
+}
 
-    wichtigkeit: "WICHTIG",
-    kategorie: "HAUSHALT",
+try {
+const res = await fetch(endpoint, {
+method: 'POST',
+headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify(neuerGegenstand)
+})
 
-    // optional (kann null sein)
-    lastUsed: null,
-    wegwerfAm: null,
-    kaufpreis: null,
-    wunschVerkaufpreis: null
-  }
+// Wenn Backend Fehlertext/JSON zurückgibt, zeigen wir es an:
+if (!res.ok) {
+const text = await res.text()
+throw new Error(`POST fehlgeschlagen: HTTP ${res.status} – ${text}`)
+}
 
-  try {
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(neuerGegenstand)
-    })
-    if (!res.ok) throw new Error(`POST fehlgeschlagen: HTTP ${res.status}`)
+// Felder leeren
+name.value = ''
+ort.value = ''
+lastUsed.value = ''
+wegwerfAm.value = ''
+kaufpreis.value = ''
+wunschVerkaufpreis.value = ''
 
-    name.value = ''
-    ort.value = ''
-    lastUsed.value = ''
-    wegwerfAm.value = ''
-    kaufpreis.value = ''
-    wunschVerkaufpreis.value = ''
-    await ladeDaten()
-  } catch (e) {
-    fehler.value = String(e)
-  }
+await ladeDaten()
+} catch (e) {
+fehler.value = String(e)
+}
 }
 
 onMounted(() => {
