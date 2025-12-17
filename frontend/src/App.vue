@@ -108,7 +108,6 @@ onMounted(ladeDaten)
         </nav>
 
         <div class="topbar-actions">
-          <button class="btn btn-ghost" @click="ladeDaten">Refresh</button>
           <a class="btn btn-primary" href="#add">Start</a>
         </div>
       </div>
