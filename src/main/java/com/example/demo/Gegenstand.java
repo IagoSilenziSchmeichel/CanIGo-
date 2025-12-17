@@ -32,7 +32,10 @@ public class Gegenstand {
     private LocalDate wegwerfAm;    // ab wann ok wegzuwerfen
 
     private BigDecimal kaufpreis;           // Kaufpreis
-    private BigDecimal wunschVerkaufpreis;  // Wunsch-Verkaufspreis
+    private BigDecimal wunschVerkaufpreis;// Wunsch-Verkaufspreis
+
+    private boolean notificationActive;
+    private boolean sendNotification;
 
     public Gegenstand() {}
 
@@ -83,4 +86,19 @@ public class Gegenstand {
 
     public BigDecimal getWunschVerkaufpreis() { return wunschVerkaufpreis; }
     public void setWunschVerkaufpreis(BigDecimal wunschVerkaufpreis) { this.wunschVerkaufpreis = wunschVerkaufpreis; }
+
+    public boolean isNotificationActive() { return notificationActive; }
+    public void setNotificationActive(boolean notificationActive) { this.notificationActive = notificationActive; }
+
+    public boolean isSendNotification() { return sendNotification; }
+    public void setSendNotification(boolean sendNotification) { this.sendNotification = sendNotification; }
+
+           private boolean erinnerungAktiv = true;
+           private boolean erinnerungGesendet = false;
+
+             public boolean isErinnerungAktiv() { return erinnerungAktiv; }
+              public void setErinnerungAktiv(boolean erinnerungAktiv) { this.erinnerungAktiv = erinnerungAktiv; }
+
+             public boolean isErinnerungGesendet() { return erinnerungGesendet; }
+              public void setErinnerungGesendet(boolean erinnerungGesendet) { this.erinnerungGesendet = erinnerungGesendet; }
 }

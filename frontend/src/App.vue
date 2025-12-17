@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 
 const liste = ref([])
 const fehler = ref('')
@@ -11,7 +11,7 @@ const kategorie = ref('HAUSHALT')
 const lastUsed = ref('')
 const wegwerfAm = ref('')
 const kaufpreis = ref('')
-const wunschVerkaufpreis = ref('')
+const wunschVerkaufspreis = ref('')
 
 const baseUrl = import.meta.env.VITE_APP_BACKEND_BASE_URL
 const endpoint = `${baseUrl}/gegenstaende`
@@ -25,6 +25,11 @@ function formatMoney(v) {
 
 function dateOrDash(v) {
   return v ? v : '—'
+}
+
+function formatDateTime(v) {
+  if (!v) return '—'
+  return String(v).replace('T', ' ').slice(0, 16)
 }
 
 async function ladeDaten() {
@@ -54,12 +59,10 @@ async function speichern() {
     ort: ort.value.trim(),
     wichtigkeit: wichtigkeit.value,
     kategorie: kategorie.value,
-
     lastUsed: lastUsed.value ? lastUsed.value : null,
     wegwerfAm: wegwerfAm.value ? wegwerfAm.value : null,
-
     kaufpreis: kaufpreis.value !== '' ? Number(kaufpreis.value) : null,
-    wunschVerkaufpreis: wunschVerkaufpreis.value !== '' ? Number(wunschVerkaufpreis.value) : null
+    wunschVerkaufspreis: wunschVerkaufspreis.value !== '' ? Number(wunschVerkaufspreis.value) : null
   }
 
   try {
@@ -80,20 +83,63 @@ async function speichern() {
     lastUsed.value = ''
     wegwerfAm.value = ''
     kaufpreis.value = ''
-    wunschVerkaufpreis.value = ''
+    wunschVerkaufspreis.value = ''
 
     await ladeDaten()
+    await ladeNotifications()
   } catch (e) {
     fehler.value = String(e)
   }
 }
 
-onMounted(ladeDaten)
+/* ---------------- Notifications ---------------- */
+const notifications = ref([])
+const notifError = ref('')
+
+async function ladeNotifications() {
+  notifError.value = ''
+  try {
+    const res = await fetch(`${baseUrl}/notifications?unseenOnly=true`)
+    if (!res.ok) {
+      const text = await res.text().catch(() => '')
+      throw new Error(`Notifications GET fehlgeschlagen: HTTP ${res.status}${text ? ` – ${text}` : ''}`)
+    }
+    notifications.value = await res.json()
+  } catch (e) {
+    notifError.value = String(e)
+  }
+}
+
+async function markNotifSeen(id) {
+  notifError.value = ''
+  try {
+    const res = await fetch(`${baseUrl}/notifications/${id}/seen`, { method: 'PUT' })
+    if (!res.ok) {
+      const text = await res.text().catch(() => '')
+      throw new Error(`seen PUT fehlgeschlagen: HTTP ${res.status}${text ? ` – ${text}` : ''}`)
+    }
+    await ladeNotifications()
+  } catch (e) {
+    notifError.value = String(e)
+  }
+}
+
+let notifInterval = null
+
+onMounted(() => {
+  ladeDaten()
+  ladeNotifications()
+  notifInterval = setInterval(ladeNotifications, 30000)
+})
+
+onBeforeUnmount(() => {
+  if (notifInterval) clearInterval(notifInterval)
+})
 </script>
 
 <template>
   <div class="page">
-    <!-- Sticky Top Nav (wie bei Slite) -->
+    <!-- Sticky Top Nav -->
     <header class="topbar">
       <div class="topbar-inner">
         <div class="brand">
@@ -103,6 +149,7 @@ onMounted(ladeDaten)
 
         <nav class="nav">
           <a href="#home">Home</a>
+          <a href="#notifications">Erinnerungen ({{ notifications.length }})</a>
           <a href="#add">Hinzufügen</a>
           <a href="#items">Gegenstände</a>
         </nav>
@@ -116,23 +163,24 @@ onMounted(ladeDaten)
     <!-- Hero -->
     <section id="home" class="hero">
       <div class="hero-inner">
-        <p class="pill">Weniger Chaos. Mehr Überblick.</p>
-        <h1 class="hero-title">
-          Entscheide smarter, was bleiben darf — und was gehen kann.
-        </h1>
-        <p class="hero-sub">
-          Speichere deine Gegenstände, ordne sie nach Wichtigkeit, setze Wegwerf-Daten
-          und behalte Kauf- & Wunschpreise im Blick.
-        </p>
+        <div>
+          <p class="pill">Weniger Chaos. Mehr Überblick.</p>
+          <h1 class="hero-title">
+            Entscheide smarter, ob dein Nachbar es besser gebrauchen könnte als der Mülleimer.
+          </h1>
+          <p class="hero-sub">
+            Speichere und ordne deine Gegenstände – und bekomme Erinnerungen, wenn etwas fällig ist.
+          </p>
 
-        <div class="hero-cta">
-          <a class="btn btn-primary" href="#add">Neuen Gegenstand anlegen</a>
-          <a class="btn btn-ghost" href="#items">Liste ansehen ({{ liste.length }})</a>
-        </div>
+          <div class="hero-cta">
+            <a class="btn btn-primary" href="#add">Neuen Gegenstand anlegen</a>
+            <a class="btn btn-ghost" href="#items">Liste ansehen ({{ liste.length }})</a>
+          </div>
 
-        <div v-if="fehler" class="alert">
-          <strong>Fehler:</strong>
-          <span>{{ fehler }}</span>
+          <div v-if="fehler" class="alert">
+            <strong>Fehler:</strong>
+            <span>{{ fehler }}</span>
+          </div>
         </div>
 
         <!-- Decorative Card -->
@@ -149,12 +197,60 @@ onMounted(ladeDaten)
             <span>Mit Wegwerf-Datum:</span>
             <strong>{{ liste.filter(x => x.wegwerfAm).length }}</strong>
           </div>
+          <div class="hero-card-row">
+            <span>Ungelesene Erinnerungen:</span>
+            <strong>{{ notifications.length }}</strong>
+          </div>
         </div>
       </div>
     </section>
 
     <!-- Content -->
     <main class="content">
+      <!-- NOTIFICATIONS -->
+      <section id="notifications" class="panel">
+        <div class="panel-head row">
+          <div>
+            <h2>Erinnerungen</h2>
+            <p>{{ notifications.length }} ungelesen</p>
+          </div>
+          <button class="btn btn-ghost" @click="ladeNotifications">Neu laden</button>
+        </div>
+
+        <div v-if="notifError" class="alert">
+          <strong>Fehler:</strong>
+          <span>{{ notifError }}</span>
+        </div>
+
+        <div v-if="notifications.length === 0" class="empty">
+          <div class="empty-card">
+            <strong>Keine neuen Erinnerungen 🎉</strong>
+            <p>Wenn ein Gegenstand fällig ist, erscheint hier eine Benachrichtigung.</p>
+          </div>
+        </div>
+
+        <ul v-else class="grid">
+          <li v-for="n in notifications" :key="n.id" class="card">
+            <div class="card-top">
+              <div class="card-title">
+                <strong>{{ n.message }}</strong>
+                <span class="chip">UNGELESEN</span>
+              </div>
+              <div class="id">#{{ n.id }}</div>
+            </div>
+
+            <div class="card-body">
+              <div class="kv"><span>Zeit</span><strong>{{ formatDateTime(n.createdAt) }}</strong></div>
+              <div class="kv"><span>Gegenstand-ID</span><strong>{{ n.gegenstandId ?? '—' }}</strong></div>
+            </div>
+
+            <div class="actions" style="margin-top: 12px;">
+              <button class="btn btn-primary" @click="markNotifSeen(n.id)">Gesehen</button>
+            </div>
+          </li>
+        </ul>
+      </section>
+
       <!-- FORM -->
       <section id="add" class="panel">
         <div class="panel-head">
@@ -210,7 +306,7 @@ onMounted(ladeDaten)
 
           <label class="field">
             <span>Wunsch-Verkaufspreis (€)</span>
-            <input v-model="wunschVerkaufpreis" type="number" step="0.01" placeholder="z.B. 25.00" />
+            <input v-model="wunschVerkaufspreis" type="number" step="0.01" placeholder="z.B. 25.00" />
           </label>
         </div>
 
@@ -253,7 +349,7 @@ onMounted(ladeDaten)
               <div class="kv"><span>Zuletzt</span><strong>{{ dateOrDash(g.lastUsed) }}</strong></div>
               <div class="kv"><span>Wegwerf am</span><strong>{{ dateOrDash(g.wegwerfAm) }}</strong></div>
               <div class="kv"><span>Kaufpreis</span><strong>{{ formatMoney(g.kaufpreis) }}</strong></div>
-              <div class="kv"><span>Wunschpreis</span><strong>{{ formatMoney(g.wunschVerkaufpreis) }}</strong></div>
+              <div class="kv"><span>Wunschpreis</span><strong>{{ formatMoney(g.wunschVerkaufspreis) }}</strong></div>
             </div>
           </li>
         </ul>
