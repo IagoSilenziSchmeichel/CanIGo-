@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "notifications_v2") // <-- neu, damit neue Tabelle entsteht
 public class Notification {
 
     @Id
@@ -16,9 +17,9 @@ public class Notification {
 
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    private boolean seen = false;
+    private Boolean seen = false; // null-sicher
 
-    protected Notification() {} // JPA braucht das
+    protected Notification() {}
 
     public Notification(String message, Long gegenstandId) {
         this.message = message;
@@ -29,7 +30,10 @@ public class Notification {
     public String getMessage() { return message; }
     public Long getGegenstandId() { return gegenstandId; }
     public LocalDateTime getCreatedAt() { return createdAt; }
+    public Boolean getSeen() { return seen; }
 
-    public boolean isSeen() { return seen; }
-    public void setSeen(boolean seen) { this.seen = seen; }
+    public void setSeen(Boolean seen) { this.seen = seen; }
+
+    // optional, falls du boolean brauchst:
+    public boolean isSeenTrue() { return Boolean.TRUE.equals(seen); }
 }
