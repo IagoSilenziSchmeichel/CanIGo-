@@ -29,7 +29,7 @@ public class Notification {
     public String getMessage() { return message; }
     public Long getGegenstandId() { return gegenstandId; }
     public LocalDateTime getCreatedAt() { return createdAt; }
-    public boolean isSeen() { return seen; }
 
+    public boolean isSeen() { return seen; }
     public void setSeen(boolean seen) { this.seen = seen; }
 }

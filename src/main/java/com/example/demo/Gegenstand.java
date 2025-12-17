@@ -28,18 +28,18 @@ public class Gegenstand {
     @Enumerated(EnumType.STRING)
     private GegenstandKategorie kategorie;
 
-    private LocalDate lastUsed;     // zuletzt benutzt
-    private LocalDate wegwerfAm;    // ab wann ok wegzuwerfen
+    private LocalDate lastUsed;
+    private LocalDate wegwerfAm;
 
-    private BigDecimal kaufpreis;           // Kaufpreis
-    private BigDecimal wunschVerkaufpreis;// Wunsch-Verkaufspreis
+    private BigDecimal kaufpreis;
+    private BigDecimal wunschVerkaufpreis;
 
-    private boolean notificationActive;
-    private boolean sendNotification;
+    // Reminder-Flags (null-sicher)
+    private Boolean erinnerungAktiv = true;
+    private Boolean erinnerungGesendet = false;
 
-    public Gegenstand() {}
+    protected Gegenstand() {}
 
-    // Optional: Constructor ohne id (id wird von DB gesetzt)
     public Gegenstand(
             String name,
             String ort,
@@ -60,7 +60,6 @@ public class Gegenstand {
         this.wunschVerkaufpreis = wunschVerkaufpreis;
     }
 
-    // Getter/Setter
     public Long getId() { return id; }
 
     public String getName() { return name; }
@@ -84,21 +83,22 @@ public class Gegenstand {
     public BigDecimal getKaufpreis() { return kaufpreis; }
     public void setKaufpreis(BigDecimal kaufpreis) { this.kaufpreis = kaufpreis; }
 
-    public BigDecimal getWunschVerkaufpreis() { return wunschVerkaufpreis; }
+    public BigDecimal getWunschVerkaufspreis() { return wunschVerkaufpreis; }
     public void setWunschVerkaufpreis(BigDecimal wunschVerkaufpreis) { this.wunschVerkaufpreis = wunschVerkaufpreis; }
 
-    public boolean isNotificationActive() { return notificationActive; }
-    public void setNotificationActive(boolean notificationActive) { this.notificationActive = notificationActive; }
+    //  Getter/Setter null-sicher
+    public Boolean getErinnerungAktiv() { return erinnerungAktiv; }
+    public void setErinnerungAktiv(Boolean v) { this.erinnerungAktiv = v; }
 
-    public boolean isSendNotification() { return sendNotification; }
-    public void setSendNotification(boolean sendNotification) { this.sendNotification = sendNotification; }
+    public Boolean getErinnerungGesendet() { return erinnerungGesendet; }
+    public void setErinnerungGesendet(Boolean v) { this.erinnerungGesendet = v; }
 
-           private boolean erinnerungAktiv = true;
-           private boolean erinnerungGesendet = false;
+    // Optional: Helper für sauberes if() ohne Nullprobleme
+    public boolean isErinnerungAktivTrue() {
+        return Boolean.TRUE.equals(erinnerungAktiv);
+    }
 
-             public boolean isErinnerungAktiv() { return erinnerungAktiv; }
-              public void setErinnerungAktiv(boolean erinnerungAktiv) { this.erinnerungAktiv = erinnerungAktiv; }
-
-             public boolean isErinnerungGesendet() { return erinnerungGesendet; }
-              public void setErinnerungGesendet(boolean erinnerungGesendet) { this.erinnerungGesendet = erinnerungGesendet; }
+    public boolean isErinnerungGesendetTrue() {
+        return Boolean.TRUE.equals(erinnerungGesendet);
+    }
 }
