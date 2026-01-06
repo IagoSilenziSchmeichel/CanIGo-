@@ -1,22 +1,28 @@
-frontend:
-  name: Frontend Tests (Node 20)
-  runs-on: ubuntu-latest
+name: CI
 
-  steps:
-    - uses: actions/checkout@v4
+on: [ push ]
 
-    - name: Set up Node.js 20
-      uses: actions/setup-node@v4
-      with:
-        node-version: 20
+jobs:
+  frontend:
+    name: Frontend Tests (Node 20)
+    runs-on: ubuntu-latest
 
-    - name: Show Node version (DEBUG)
-      run: node -v
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Install frontend dependencies
-      working-directory: frontend
-      run: npm ci
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
-    - name: Run frontend tests
-      working-directory: frontend
-      run: npm run test:unit
+      - name: Show Node version (DEBUG)
+        run: node -v
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run frontend tests
+        working-directory: frontend
+        run: npm run test:unit
