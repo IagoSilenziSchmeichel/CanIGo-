@@ -57,3 +57,11 @@ tasks.named('test') {
 tasks.withType(JavaCompile).configureEach {
 	options.compilerArgs += ['-proc:none']
 }
+
+configurations.all {
+	resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+		if (details.requested.group == 'net.bytebuddy') {
+			details.useVersion '1.17.2' // Oder neuere Version, falls verfügbar
+		}
+	}
+}
