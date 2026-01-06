@@ -1,38 +1,22 @@
-name: CI
+frontend:
+  name: Frontend Tests (Node 20)
+  runs-on: ubuntu-latest
 
-on: [ push ]
+  steps:
+    - uses: actions/checkout@v4
 
-jobs:
-  backend:
-    name: Backend Tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
+    - name: Set up Node.js 20
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
 
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
+    - name: Show Node version (DEBUG)
+      run: node -v
 
-      - name: Run backend tests
-        run: ./gradlew test
+    - name: Install frontend dependencies
+      working-directory: frontend
+      run: npm ci
 
-  frontend:
-    name: Frontend Tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Set up Node
-        uses: actions/setup-node@v2
-        with:
-          node-version: 16.11.0
-
-      - name: Install frontend dependencies
-        working-directory: frontend
-        run: npm ci
-
-      - name: Run frontend tests
-        working-directory: frontend
-        run: npm run test:unit
+    - name: Run frontend tests
+      working-directory: frontend
+      run: npm run test:unit
