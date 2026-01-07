@@ -1,6 +1,11 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 
+const route = useRoute()
+const router = useRouter()
+
+/* ---------------- State ---------------- */
 const liste = ref([])
 const fehler = ref('')
 
@@ -16,6 +21,7 @@ const wunschVerkaufspreis = ref('')
 const baseUrl = import.meta.env.VITE_APP_BACKEND_BASE_URL
 const endpoint = `${baseUrl}/gegenstaende`
 
+/* ---------------- Helpers ---------------- */
 function formatMoney(v) {
   if (v === null || v === undefined || v === '') return '—'
   const n = Number(v)
@@ -32,6 +38,7 @@ function formatDateTime(v) {
   return String(v).replace('T', ' ').slice(0, 16)
 }
 
+/* ---------------- Data ---------------- */
 async function ladeDaten() {
   fehler.value = ''
   try {
@@ -124,6 +131,16 @@ async function markNotifSeen(id) {
   }
 }
 
+/* ---------------- Home-only helper ---------------- */
+function goToAddAndFocus() {
+  // Home ist in App.vue, wir bleiben dort und scrollen zum Formular
+  if (route.path !== '/') router.push('/')
+  // wait one tick-ish for route render; simple timeout is enough
+  setTimeout(() => {
+    document.getElementById('add')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, 50)
+}
+
 let notifInterval = null
 
 onMounted(() => {
@@ -148,219 +165,196 @@ onBeforeUnmount(() => {
         </div>
 
         <nav class="nav">
-          <a href="#home">Home</a>
-          <a href="#notifications">Erinnerungen ({{ notifications.length }})</a>
-          <a href="#add">Hinzufügen</a>
-          <a href="#items">Gegenstände</a>
+          <RouterLink to="/" class="navlink" :class="{ active: route.path === '/' }">Home</RouterLink>
+          <RouterLink to="/reminders" class="navlink" :class="{ active: route.path === '/reminders' }">
+            Erinnerungen ({{ notifications.length }})
+          </RouterLink>
+          <button class="navlink as-btn" type="button" @click="goToAddAndFocus">Hinzufügen</button>
+          <RouterLink to="/items" class="navlink" :class="{ active: route.path === '/items' }">Gegenstände</RouterLink>
         </nav>
 
         <div class="topbar-actions">
-          <a class="btn btn-primary" href="#add">Start</a>
+          <button class="btn btn-primary" type="button" @click="goToAddAndFocus">Start</button>
         </div>
       </div>
     </header>
 
-    <!-- Hero -->
-    <section id="home" class="hero">
-      <div class="hero-inner">
-        <div>
-          <p class="pill">Weniger Chaos. Mehr Überblick.</p>
-          <h1 class="hero-title">
-            Entscheide smarter, ob dein Nachbar es besser gebrauchen könnte als der Mülleimer.
-          </h1>
-          <p class="hero-sub">
-            Speichere und ordne deine Gegenstände – und bekomme Erinnerungen, wenn etwas fällig ist.
-          </p>
-
-          <div class="hero-cta">
-            <a class="btn btn-primary" href="#add">Neuen Gegenstand anlegen</a>
-            <a class="btn btn-ghost" href="#items">Liste ansehen ({{ liste.length }})</a>
-          </div>
-
-          <div v-if="fehler" class="alert">
-            <strong>Fehler:</strong>
-            <span>{{ fehler }}</span>
-          </div>
-        </div>
-
-        <!-- Decorative Card -->
-        <div class="hero-card">
-          <div class="hero-card-top">
-            <span class="mini-title">Quick Insight</span>
-            <span class="mini-badge">{{ liste.length }} Items</span>
-          </div>
-          <div class="hero-card-row">
-            <span>Wichtig:</span>
-            <strong>{{ liste.filter(x => x.wichtigkeit === 'WICHTIG').length }}</strong>
-          </div>
-          <div class="hero-card-row">
-            <span>Mit Wegwerf-Datum:</span>
-            <strong>{{ liste.filter(x => x.wegwerfAm).length }}</strong>
-          </div>
-          <div class="hero-card-row">
-            <span>Ungelesene Erinnerungen:</span>
-            <strong>{{ notifications.length }}</strong>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Content -->
-    <main class="content">
-      <!-- NOTIFICATIONS -->
-      <section id="notifications" class="panel">
-        <div class="panel-head row">
+    <!-- HOME: Hero + Tipps + Add bleibt auf / -->
+    <template v-if="route.path === '/'">
+      <!-- Hero -->
+      <section class="hero">
+        <div class="hero-inner">
           <div>
-            <h2>Erinnerungen</h2>
-            <p>{{ notifications.length }} ungelesen</p>
+            <p class="pill">Weniger Chaos. Mehr Überblick.</p>
+            <h1 class="hero-title">Entscheide smarter, ob dein Nachbar es besser gebrauchen könnte als der Mülleimer.</h1>
+            <p class="hero-sub">
+              Speichere und ordne deine Gegenstände – und bekomme Erinnerungen, wenn etwas fällig ist.
+            </p>
+
+            <div class="hero-cta">
+              <button class="btn btn-primary" type="button" @click="goToAddAndFocus">Neuen Gegenstand anlegen</button>
+              <RouterLink class="btn btn-ghost" to="/items">Liste ansehen ({{ liste.length }})</RouterLink>
+            </div>
+
+            <div v-if="fehler" class="alert">
+              <strong>Fehler:</strong>
+              <span>{{ fehler }}</span>
+            </div>
           </div>
-          <button class="btn btn-ghost" @click="ladeNotifications">Neu laden</button>
-        </div>
 
-        <div v-if="notifError" class="alert">
-          <strong>Fehler:</strong>
-          <span>{{ notifError }}</span>
-        </div>
-
-        <div v-if="notifications.length === 0" class="empty">
-          <div class="empty-card">
-            <strong>Keine neuen Erinnerungen 🎉</strong>
-            <p>Wenn ein Gegenstand fällig ist, erscheint hier eine Benachrichtigung.</p>
+          <!-- Decorative Card -->
+          <div class="hero-card">
+            <div class="hero-card-top">
+              <span class="mini-title">Quick Insight</span>
+              <span class="mini-badge">{{ liste.length }} Items</span>
+            </div>
+            <div class="hero-card-row">
+              <span>Wichtig:</span>
+              <strong>{{ liste.filter(x => x.wichtigkeit === 'WICHTIG').length }}</strong>
+            </div>
+            <div class="hero-card-row">
+              <span>Mit Wegwerf-Datum:</span>
+              <strong>{{ liste.filter(x => x.wegwerfAm).length }}</strong>
+            </div>
+            <div class="hero-card-row">
+              <span>Ungelesene Erinnerungen:</span>
+              <strong>{{ notifications.length }}</strong>
+            </div>
           </div>
         </div>
+      </section>
 
-        <ul v-else class="grid">
-          <li v-for="n in notifications" :key="n.id" class="card">
-            <div class="card-top">
-              <div class="card-title">
-                <strong>{{ n.message }}</strong>
-                <span class="chip">UNGELESEN</span>
+      <!-- Content -->
+      <main class="content">
+        <!-- TIPPS / "Startseite Content" -->
+        <section class="panel">
+          <div class="panel-head">
+            <h2>Tipps: Was du mit alten Gegenständen tun kannst</h2>
+            <p>Kurze Ideen – schnell entscheiden, bevor du es wegwirfst.</p>
+          </div>
+
+          <div class="tips">
+            <div class="tip-card">
+              <div class="tip-icon">♻️</div>
+              <div>
+                <strong>Spenden</strong>
+                <p>Wenn’s noch funktioniert: Sozialkaufhaus, Freunde, Nachbarn.</p>
               </div>
-              <div class="id">#{{ n.id }}</div>
             </div>
 
-            <div class="card-body">
-              <div class="kv"><span>Zeit</span><strong>{{ formatDateTime(n.createdAt) }}</strong></div>
-              <div class="kv"><span>Gegenstand-ID</span><strong>{{ n.gegenstandId ?? '—' }}</strong></div>
-            </div>
-
-            <div class="actions" style="margin-top: 12px;">
-              <button class="btn btn-primary" @click="markNotifSeen(n.id)">Gesehen</button>
-            </div>
-          </li>
-        </ul>
-      </section>
-
-      <!-- FORM -->
-      <section id="add" class="panel">
-        <div class="panel-head">
-          <h2>Neuen Gegenstand hinzufügen</h2>
-          <p>Felder mit * sind Pflicht. Alles andere ist optional.</p>
-        </div>
-
-        <div class="form-grid">
-          <label class="field">
-            <span>Name*</span>
-            <input v-model="name" placeholder="z.B. Hammer" />
-          </label>
-
-          <label class="field">
-            <span>Ort*</span>
-            <input v-model="ort" placeholder="z.B. Werkbank" />
-          </label>
-
-          <label class="field">
-            <span>Wichtigkeit</span>
-            <select v-model="wichtigkeit">
-              <option value="WICHTIG">Wichtig</option>
-              <option value="MITTEL">Mittel</option>
-              <option value="UNWICHTIG">Unwichtig</option>
-            </select>
-          </label>
-
-          <label class="field">
-            <span>Kategorie</span>
-            <select v-model="kategorie">
-              <option value="HAUSHALT">Haushalt</option>
-              <option value="DOKUMENTE">Dokumente</option>
-              <option value="REISE">Reise</option>
-              <option value="TECH">Tech</option>
-              <option value="SONSTIGES">Sonstiges</option>
-            </select>
-          </label>
-
-          <label class="field">
-            <span>Zuletzt benutzt</span>
-            <input v-model="lastUsed" type="date" />
-          </label>
-
-          <label class="field">
-            <span>Wegwerf-Datum</span>
-            <input v-model="wegwerfAm" type="date" />
-          </label>
-
-          <label class="field">
-            <span>Kaufpreis (€)</span>
-            <input v-model="kaufpreis" type="number" step="0.01" placeholder="z.B. 49.99" />
-          </label>
-
-          <label class="field">
-            <span>Wunsch-Verkaufspreis (€)</span>
-            <input v-model="wunschVerkaufspreis" type="number" step="0.01" placeholder="z.B. 25.00" />
-          </label>
-        </div>
-
-        <div class="actions">
-          <button class="btn btn-primary" @click="speichern">Hinzufügen</button>
-        </div>
-      </section>
-
-      <!-- LISTE -->
-      <section id="items" class="panel">
-        <div class="panel-head row">
-          <div>
-            <h2>Deine Gegenstände</h2>
-            <p>{{ liste.length }} Einträge</p>
-          </div>
-          <button class="btn btn-ghost" @click="ladeDaten">Neu laden</button>
-        </div>
-
-        <div v-if="liste.length === 0" class="empty">
-          <div class="empty-card">
-            <strong>Noch keine Gegenstände.</strong>
-            <p>Lege oben deinen ersten Gegenstand an.</p>
-            <a class="btn btn-primary" href="#add">Jetzt starten</a>
-          </div>
-        </div>
-
-        <ul v-else class="grid">
-          <li v-for="g in liste" :key="g.id" class="card">
-            <div class="card-top">
-              <div class="card-title">
-                <strong>{{ g.name }}</strong>
-                <span class="chip" :data-imp="g.wichtigkeit">{{ g.wichtigkeit }}</span>
-                <span class="chip ghost">{{ g.kategorie }}</span>
+            <div class="tip-card">
+              <div class="tip-icon">💶</div>
+              <div>
+                <strong>Verkaufen</strong>
+                <p>Wunschpreis setzen und checken, ob sich’s lohnt.</p>
               </div>
-              <div class="id">#{{ g.id }}</div>
             </div>
 
-            <div class="card-body">
-              <div class="kv"><span>Ort</span><strong>{{ g.ort }}</strong></div>
-              <div class="kv"><span>Zuletzt</span><strong>{{ dateOrDash(g.lastUsed) }}</strong></div>
-              <div class="kv"><span>Wegwerf am</span><strong>{{ dateOrDash(g.wegwerfAm) }}</strong></div>
-              <div class="kv"><span>Kaufpreis</span><strong>{{ formatMoney(g.kaufpreis) }}</strong></div>
-              <div class="kv"><span>Wunschpreis</span><strong>{{ formatMoney(g.wunschVerkaufspreis) }}</strong></div>
+            <div class="tip-card">
+              <div class="tip-icon">🗑️</div>
+              <div>
+                <strong>Wegwerfen</strong>
+                <p>Mit Wegwerf-Datum planen – und rechtzeitig erinnert werden.</p>
+              </div>
             </div>
-          </li>
-        </ul>
-      </section>
+          </div>
+        </section>
 
-      <footer class="footer">
-        <span>© {{ new Date().getFullYear() }} Can I Go?</span>
-        <span class="dot">•</span>
-        <span>Minimal UI · Vue + Spring Boot</span>
-      </footer>
-    </main>
+        <!-- FORM (bleibt auf Home) -->
+        <section id="add" class="panel">
+          <div class="panel-head">
+            <h2>Neuen Gegenstand hinzufügen</h2>
+            <p>Felder mit * sind Pflicht. Alles andere ist optional.</p>
+          </div>
+
+          <div class="form-grid">
+            <label class="field">
+              <span>Name*</span>
+              <input v-model="name" placeholder="z.B. Hammer" />
+            </label>
+
+            <label class="field">
+              <span>Ort*</span>
+              <input v-model="ort" placeholder="z.B. Werkbank" />
+            </label>
+
+            <label class="field">
+              <span>Wichtigkeit</span>
+              <select v-model="wichtigkeit">
+                <option value="WICHTIG">Wichtig</option>
+                <option value="MITTEL">Mittel</option>
+                <option value="UNWICHTIG">Unwichtig</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Kategorie</span>
+              <select v-model="kategorie">
+                <option value="HAUSHALT">Haushalt</option>
+                <option value="DOKUMENTE">Dokumente</option>
+                <option value="REISE">Reise</option>
+                <option value="TECH">Tech</option>
+                <option value="SONSTIGES">Sonstiges</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Zuletzt benutzt</span>
+              <input v-model="lastUsed" type="date" />
+            </label>
+
+            <label class="field">
+              <span>Wegwerf-Datum</span>
+              <input v-model="wegwerfAm" type="date" />
+            </label>
+
+            <label class="field">
+              <span>Kaufpreis (€)</span>
+              <input v-model="kaufpreis" type="number" step="0.01" placeholder="z.B. 49.99" />
+            </label>
+
+            <label class="field">
+              <span>Wunsch-Verkaufspreis (€)</span>
+              <input v-model="wunschVerkaufspreis" type="number" step="0.01" placeholder="z.B. 25.00" />
+            </label>
+          </div>
+
+          <div class="actions">
+            <button class="btn btn-primary" @click="speichern">Hinzufügen</button>
+          </div>
+        </section>
+
+        <footer class="footer">
+          <span>© {{ new Date().getFullYear() }} Can I Go?</span>
+          <span class="dot">•</span>
+          <span>Minimal UI · Vue + Spring Boot</span>
+        </footer>
+      </main>
+    </template>
+
+    <!-- ROUTED PAGES (Items / Reminders) -->
+    <template v-else>
+      <main class="content">
+        <!-- wir geben wichtige Daten/Funktionen als Props an die Pages -->
+        <RouterView
+            :liste="liste"
+            :notifications="notifications"
+            :notifError="notifError"
+            :formatMoney="formatMoney"
+            :dateOrDash="dateOrDash"
+            :formatDateTime="formatDateTime"
+            :ladeDaten="ladeDaten"
+            :ladeNotifications="ladeNotifications"
+            :markNotifSeen="markNotifSeen"
+        />
+
+        <footer class="footer">
+          <span>© {{ new Date().getFullYear() }} Can I Go?</span>
+          <span class="dot">•</span>
+          <span>Minimal UI · Vue + Spring Boot</span>
+        </footer>
+      </main>
+    </template>
   </div>
 </template>
 
@@ -380,7 +374,6 @@ onBeforeUnmount(() => {
   --br-glass: rgba(10,14,28,.55);
   --br-glass2: rgba(10,14,28,.38);
   --br-border: rgba(41,243,255,.14);
-  --br-border2: rgba(255,176,0,.12);
 
   --br-shadow: 0 22px 70px rgba(0,0,0,.55);
   --br-glow-cyan: 0 0 0 1px rgba(41,243,255,.18), 0 0 22px rgba(41,243,255,.12);
@@ -439,17 +432,30 @@ onBeforeUnmount(() => {
   flex-wrap: wrap;
 }
 
-.nav a{
+.navlink{
   color: rgba(230,242,255,.72);
   text-decoration: none;
   font-size: 14px;
   padding: 8px 10px;
   border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  line-height: 1;
 }
 
-.nav a:hover{
+.navlink:hover{
   background: rgba(41,243,255,.08);
   color: rgba(230,242,255,.92);
+}
+
+.navlink.active{
+  border-color: rgba(41,243,255,.22);
+  background: rgba(41,243,255,.08);
+  box-shadow: 0 0 0 1px rgba(41,243,255,.10);
+}
+
+.navlink.as-btn{
+  cursor: pointer;
 }
 
 .topbar-actions{
@@ -603,6 +609,42 @@ onBeforeUnmount(() => {
   font-size: 13px;
 }
 
+/* ---------- Tips (Home only) ---------- */
+.tips{
+  display:grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.tip-card{
+  border-radius: 20px;
+  border: 1px solid rgba(230,242,255,.12);
+  background: rgba(10,14,28,.35);
+  padding: 14px;
+  display:flex;
+  gap: 12px;
+  align-items:flex-start;
+}
+
+.tip-icon{
+  width: 38px;
+  height: 38px;
+  border-radius: 14px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background: rgba(41,243,255,.10);
+  border: 1px solid rgba(41,243,255,.18);
+  box-shadow: var(--br-glow-cyan);
+  flex: 0 0 auto;
+  font-size: 18px;
+}
+
+.tip-card p{
+  margin: 6px 0 0;
+  color: var(--br-muted);
+}
+
 /* ---------- Form ---------- */
 .form-grid{
   display: grid;
@@ -652,6 +694,7 @@ input:focus, select:focus{
   cursor: pointer;
   user-select: none;
   font-size: 14px;
+  background: transparent;
 }
 
 .btn-primary{
@@ -676,107 +719,6 @@ input:focus, select:focus{
   border-color: rgba(41,243,255,.18);
 }
 
-/* ---------- List ---------- */
-.grid{
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
-  gap: 14px;
-}
-
-.card{
-  border-radius: 20px;
-  border: 1px solid rgba(230,242,255,.12);
-  background: var(--br-glass2);
-  padding: 14px;
-  box-shadow: 0 18px 55px rgba(0,0,0,.45);
-}
-
-.card-top{
-  display:flex;
-  align-items:flex-start;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-.card-title{
-  display:flex;
-  gap: 8px;
-  align-items:center;
-  flex-wrap: wrap;
-}
-
-.id{
-  font-size: 12px;
-  color: rgba(230,242,255,.55);
-}
-
-.chip{
-  font-size: 12px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(230,242,255,.14);
-  background: rgba(230,242,255,.06);
-  color: rgba(230,242,255,.88);
-}
-
-.chip.ghost{
-  background: rgba(255,176,0,.08);
-  border-color: rgba(255,176,0,.18);
-  color: rgba(255,226,180,.95);
-}
-
-.chip[data-imp="WICHTIG"]{
-  border-color: rgba(41,243,255,.28);
-  background: rgba(41,243,255,.10);
-  box-shadow: var(--br-glow-cyan);
-}
-
-.chip[data-imp="UNWICHTIG"]{
-  border-color: rgba(255,106,0,.22);
-  background: rgba(255,106,0,.10);
-  box-shadow: var(--br-glow-amber);
-}
-
-.card-body{
-  display:grid;
-  gap: 8px;
-}
-
-.kv{
-  display:flex;
-  justify-content: space-between;
-  gap: 10px;
-  font-size: 13px;
-  color: var(--br-muted);
-}
-
-.kv strong{
-  color: rgba(230,242,255,.92);
-}
-
-/* ---------- Empty state ---------- */
-.empty{
-  padding: 12px 0 0;
-}
-
-.empty-card{
-  border-radius: 18px;
-  border: 1px dashed rgba(230,242,255,.20);
-  background: rgba(10,14,28,.35);
-  padding: 18px;
-  text-align: center;
-  color: rgba(230,242,255,.92);
-}
-
-.empty-card p{
-  margin: 8px 0 12px;
-  color: var(--br-muted);
-}
-
 /* ---------- Footer ---------- */
 .footer{
   margin-top: 8px;
@@ -797,6 +739,9 @@ input:focus, select:focus{
   }
   .hero-title{
     font-size: 44px;
+  }
+  .tips{
+    grid-template-columns: 1fr;
   }
 }
 
