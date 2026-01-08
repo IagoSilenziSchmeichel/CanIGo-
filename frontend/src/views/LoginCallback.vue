@@ -1,0 +1,20 @@
+<template>
+  <div style="padding: 40px 18px;">
+    <h1>Logging in…</h1>
+  </div>
+</template>
+
+<script setup>
+import { onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { oktaAuth } from '../okta'
+
+const route = useRoute()
+const router = useRouter()
+
+onMounted(async () => {
+  await oktaAuth.handleLoginRedirect()
+  const from = route.query.from || '/'
+  router.replace(from)
+})
+</script>

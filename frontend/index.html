@@ -1,13 +1,29 @@
 <!DOCTYPE html>
-<html lang="">
-  <head>
-    <meta charset="UTF-8">
-    <link rel="icon" href="/favicon.ico">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vite App</title>
-  </head>
-  <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.js"></script>
-  </body>
+<html lang="de">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Can I Go?</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
+
+    <!-- ✅ OKTA SIGN-IN WIDGET CSS (CDN – stabil mit Vite) -->
+    <link
+            rel="stylesheet"
+            href="https://global.oktacdn.com/okta-signin-widget/7.39.2/css/okta-sign-in.min.css"
+    />
+    <link
+            rel="stylesheet"
+            href="https://global.oktacdn.com/okta-signin-widget/7.39.2/css/okta-theme.css"
+    />
+</head>
+
+<body>
+<div id="app"></div>
+
+<!-- Vite Entry -->
+<script type="module" src="/src/main.js"></script>
+</body>
 </html>

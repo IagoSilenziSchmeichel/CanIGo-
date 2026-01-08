@@ -1,9 +1,35 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
+import { oktaAuth } from './okta' // ✅ wichtig: oktaAuth kommt aus src/okta.js
 
 const route = useRoute()
 const router = useRouter()
+
+/* ---------------- Auth (Login/Logout Pill) ---------------- */
+const isLoggedIn = ref(false)
+
+async function refreshAuth() {
+  try {
+    isLoggedIn.value = await oktaAuth.isAuthenticated()
+  } catch {
+    isLoggedIn.value = false
+  }
+}
+
+async function login() {
+  // embedded widget sitzt auf /login
+  await router.push('/login')
+}
+
+async function logout() {
+  try {
+    await oktaAuth.signOut({ postLogoutRedirectUri: window.location.origin + '/' })
+  } finally {
+    await refreshAuth()
+    await router.push('/')
+  }
+}
 
 /* ---------------- State ---------------- */
 const liste = ref([])
@@ -133,24 +159,29 @@ async function markNotifSeen(id) {
 
 /* ---------------- Home-only helper ---------------- */
 function goToAddAndFocus() {
-  // Home ist in App.vue, wir bleiben dort und scrollen zum Formular
   if (route.path !== '/') router.push('/')
-  // wait one tick-ish for route render; simple timeout is enough
   setTimeout(() => {
     document.getElementById('add')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, 50)
 }
 
 let notifInterval = null
+let authUnsub = null
 
-onMounted(() => {
+onMounted(async () => {
   ladeDaten()
   ladeNotifications()
   notifInterval = setInterval(ladeNotifications, 30000)
+
+  // ✅ Auth Status live updaten (Login/Logout Pill)
+  await refreshAuth()
+  oktaAuth.authStateManager.subscribe(() => refreshAuth())
+  authUnsub = () => oktaAuth.authStateManager.unsubscribe(() => refreshAuth())
 })
 
 onBeforeUnmount(() => {
   if (notifInterval) clearInterval(notifInterval)
+  if (authUnsub) authUnsub()
 })
 </script>
 
@@ -160,17 +191,49 @@ onBeforeUnmount(() => {
     <header class="topbar">
       <div class="topbar-inner">
         <div class="brand">
+          <!-- ✅ war bei dir aus Versehen "tips" -->
           <div class="logo-dot" />
           <span>Can I Go?</span>
         </div>
 
         <nav class="nav">
+          <!-- ✅ Home bleibt als Pill -->
           <RouterLink to="/" class="navlink" :class="{ active: route.path === '/' }">Home</RouterLink>
-          <RouterLink to="/reminders" class="navlink" :class="{ active: route.path === '/reminders' }">
+
+          <!-- ✅ Erinnerungen -->
+          <RouterLink
+              to="/notifications"
+              class="navlink"
+              :class="{ active: route.path === '/notifications' }"
+          >
             Erinnerungen ({{ notifications.length }})
           </RouterLink>
+
+          <!-- ✅ Login Pill direkt daneben (wie du willst) -->
+          <button
+              v-if="!isLoggedIn"
+              class="navlink as-btn"
+              type="button"
+              :class="{ active: route.path === '/login' }"
+              @click="login"
+          >
+            Login
+          </button>
+
+          <button
+              v-else
+              class="navlink as-btn"
+              type="button"
+              @click="logout"
+          >
+            Logout
+          </button>
+
           <button class="navlink as-btn" type="button" @click="goToAddAndFocus">Hinzufügen</button>
-          <RouterLink to="/items" class="navlink" :class="{ active: route.path === '/items' }">Gegenstände</RouterLink>
+
+          <RouterLink to="/items" class="navlink" :class="{ active: route.path === '/items' }">
+            Gegenstände
+          </RouterLink>
         </nav>
 
         <div class="topbar-actions">
@@ -185,14 +248,15 @@ onBeforeUnmount(() => {
       <section class="hero">
         <div class="hero-inner">
           <div>
-            <p class="pill">Weniger Chaos. Mehr Überblick.</p>
-            <h1 class="hero-title">Entscheide smarter, ob dein Nachbar es besser gebrauchen könnte als der Mülleimer.</h1>
+            <h1 class="hero-title">Can I Go?</h1>
             <p class="hero-sub">
               Speichere und ordne deine Gegenstände – und bekomme Erinnerungen, wenn etwas fällig ist.
             </p>
 
             <div class="hero-cta">
-              <button class="btn btn-primary" type="button" @click="goToAddAndFocus">Neuen Gegenstand anlegen</button>
+              <button class="btn btn-primary" type="button" @click="goToAddAndFocus">
+                Neuen Gegenstand anlegen
+              </button>
               <RouterLink class="btn btn-ghost" to="/items">Liste ansehen ({{ liste.length }})</RouterLink>
             </div>
 
@@ -332,10 +396,9 @@ onBeforeUnmount(() => {
       </main>
     </template>
 
-    <!-- ROUTED PAGES (Items / Reminders) -->
+    <!-- ROUTED PAGES (Items / Notifications / Login etc.) -->
     <template v-else>
       <main class="content">
-        <!-- wir geben wichtige Daten/Funktionen als Props an die Pages -->
         <RouterView
             :liste="liste"
             :notifications="notifications"
@@ -478,18 +541,6 @@ onBeforeUnmount(() => {
   align-items: start;
 }
 
-.pill{
-  display: inline-flex;
-  width: fit-content;
-  padding: 7px 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(230,242,255,.16);
-  background: rgba(10,14,28,.45);
-  color: var(--br-muted);
-  font-size: 13px;
-  margin: 0 0 14px;
-}
-
 .hero-title{
   margin: 0 0 10px;
   font-size: 54px;
@@ -587,13 +638,6 @@ onBeforeUnmount(() => {
 
 .panel-head{
   margin-bottom: 12px;
-}
-
-.panel-head.row{
-  display:flex;
-  align-items:center;
-  justify-content: space-between;
-  gap: 12px;
 }
 
 .panel h2{
