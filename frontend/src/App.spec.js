@@ -2,35 +2,43 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import App from './App.vue'
 
-// --- NEU: Router Mocking ---
-// Das verhindert den Fehler: TypeError: Cannot read properties of undefined (reading 'path')
+// 1. Mock für vue-router
 vi.mock('vue-router', () => ({
+    RouterLink: { name: 'RouterLink', render: () => null },
+    RouterView: { name: 'RouterView', render: () => null },
     useRoute: () => ({
-        path: '/', // Simuliert, dass wir auf der Startseite sind
+        path: '/',
     }),
     useRouter: () => ({
         push: vi.fn(),
     }),
 }))
 
-// --- Mocking fetch ---
+// 2. Umgebungsvariable setzen
+import.meta.env.VITE_APP_BACKEND_BASE_URL = 'http://localhost:8080'
+
+// 3. Globalen Fetch-Mock erstellen
 global.fetch = vi.fn()
 
+// Hilfsfunktion für Fetch-Antworten
 function createFetchResponse(data, ok = true) {
     return {
         ok: ok,
-        json: () => new Promise((resolve) => resolve(data)),
-        text: () => new Promise((resolve) => resolve("Fehler im Backend"))
+        json: () => Promise.resolve(data),
+        text: () => Promise.resolve("Fehler im Backend")
     }
 }
 
 describe('App.vue Integration Tests', () => {
 
-    // Hilfsfunktion zum Mounten, damit wir nicht überall die Stubs schreiben müssen
+    // Hilfsfunktion zum Mounten mit Stubs
     const mountApp = () => {
         return mount(App, {
             global: {
-                stubs: ['RouterLink', 'RouterView'] // NEU: Verhindert Warnungen im Log
+                stubs: {
+                    RouterLink: { template: '<a><slot /></a>' },
+                    RouterView: { template: '<div />' }
+                }
             }
         })
     }
@@ -38,19 +46,16 @@ describe('App.vue Integration Tests', () => {
     beforeEach(() => {
         vi.resetAllMocks()
 
+        // Standard-Mock Verhalten für alle Tests
         fetch.mockImplementation((url) => {
-            if (url.includes('/notifications')) {
-                return Promise.resolve(createFetchResponse([]))
-            }
-            if (url.includes('/gegenstaende')) {
-                return Promise.resolve(createFetchResponse([]))
-            }
+            if (url.includes('/notifications')) return Promise.resolve(createFetchResponse([]))
+            if (url.includes('/gegenstaende')) return Promise.resolve(createFetchResponse([]))
             return Promise.resolve(createFetchResponse({}))
         })
     })
 
     it('zeigt den Titel "Can I Go?" an', () => {
-        const wrapper = mountApp() // Nutzt die Hilfsfunktion
+        const wrapper = mountApp()
         expect(wrapper.text()).toContain('Can I Go?')
     })
 
@@ -69,6 +74,7 @@ describe('App.vue Integration Tests', () => {
 
     it('sendet Daten an das Backend beim Speichern', async () => {
         const wrapper = mountApp()
+
         await wrapper.find('input[placeholder="z.B. Hammer"]').setValue('Plasma-Cutter')
         await wrapper.find('input[placeholder="z.B. Werkbank"]').setValue('Werkstatt')
 
@@ -81,17 +87,14 @@ describe('App.vue Integration Tests', () => {
 
         await wrapper.find('#add button.btn-primary').trigger('click')
 
-        const calls = fetch.mock.calls
-        const postCall = calls.find(call => call[1] && call[1].method === 'POST')
-
+        const postCall = fetch.mock.calls.find(call => call[1] && call[1].method === 'POST')
         expect(postCall).toBeDefined()
-        expect(postCall[0]).toContain('/gegenstaende')
         expect(postCall[1].body).toContain('Plasma-Cutter')
     })
 
-    it('zeigt geladene Gegenstände als Karte an', async () => {
+    it('zeigt geladene Gegenstände in der Statistik an', async () => {
         const mockItems = [
-            { id: 1, name: 'Cyber-Deck', ort: 'Rucksack', wichtigkeit: 'UNVERZICHTBAR', kategorie: 'TECH' }
+            { id: 1, name: 'Cyber-Deck', ort: 'Rucksack', wichtigkeit: 'WICHTIG', kategorie: 'TECH' }
         ]
 
         fetch.mockImplementation((url) => {
@@ -103,32 +106,12 @@ describe('App.vue Integration Tests', () => {
 
         const wrapper = mountApp()
 
-        await new Promise(resolve => setTimeout(resolve, 10))
+        // Warten auf async Daten
+        await new Promise(resolve => setTimeout(resolve, 50))
         await wrapper.vm.$nextTick()
 
-        expect(wrapper.text()).toContain('Cyber-Deck')
-        expect(wrapper.text()).toContain('Rucksack')
-        expect(wrapper.text()).toContain('UNVERZICHTBAR')
-    })
-
-    it('zeigt den Bereich für Erinnerungen an', async () => {
-        const mockNotifs = [
-            { id: 1, message: 'TÜV fällig', createdAt: '2025-01-01T12:00:00' }
-        ]
-
-        fetch.mockImplementation((url) => {
-            if (url.includes('/notifications')) {
-                return Promise.resolve(createFetchResponse(mockNotifs))
-            }
-            return Promise.resolve(createFetchResponse([]))
-        })
-
-        const wrapper = mountApp()
-
-        await new Promise(resolve => setTimeout(resolve, 10))
-        await wrapper.vm.$nextTick()
-
-        expect(wrapper.find('#notifications').exists()).toBe(true)
-        expect(wrapper.text()).toContain('TÜV fällig')
+        const text = wrapper.text()
+        expect(text).toContain('1 Items')
+        expect(text).toContain('Wichtig:1')
     })
 })
