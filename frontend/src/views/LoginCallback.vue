@@ -13,7 +13,6 @@ const route = useRoute()
 const router = useRouter()
 
 onMounted(async () => {
-  await oktaAuth.handleLoginRedirect()
   const from = route.query.from || '/'
   router.replace(from)
 })

@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
-import { oktaAuth } from './okta' // ✅ wichtig: oktaAuth kommt aus src/okta.js
+import { oktaAuth } from './okta'
 
 const route = useRoute()
 const router = useRouter()
@@ -18,8 +18,7 @@ async function refreshAuth() {
 }
 
 async function login() {
-  // embedded widget sitzt auf /login
-  await router.push('/login')
+  await oktaAuth.signInWithRedirect({ originalUri: window.location.pathname })
 }
 
 async function logout() {
@@ -110,7 +109,6 @@ async function speichern() {
       throw new Error(`POST fehlgeschlagen: HTTP ${res.status}${text ? ` – ${text}` : ''}`)
     }
 
-    // Reset
     name.value = ''
     ort.value = ''
     lastUsed.value = ''
@@ -173,10 +171,11 @@ onMounted(async () => {
   ladeNotifications()
   notifInterval = setInterval(ladeNotifications, 30000)
 
-  // ✅ Auth Status live updaten (Login/Logout Pill)
+  // ✅ Auth Status live updaten (Login/Logout Pill) — RICHTIG
   await refreshAuth()
-  oktaAuth.authStateManager.subscribe(() => refreshAuth())
-  authUnsub = () => oktaAuth.authStateManager.unsubscribe(() => refreshAuth())
+  const handler = () => refreshAuth()
+  oktaAuth.authStateManager.subscribe(handler)
+  authUnsub = () => oktaAuth.authStateManager.unsubscribe(handler)
 })
 
 onBeforeUnmount(() => {
