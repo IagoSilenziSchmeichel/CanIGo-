@@ -1,33 +1,49 @@
+<!-- src/App.vue -->
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
-import { oktaAuth } from './okta'
 
 const route = useRoute()
 const router = useRouter()
 
-/* ---------------- Auth (Login/Logout Pill) ---------------- */
+/* ---------------- Auth (OHNE Okta) ----------------
+   Wir nehmen hier als einfache Lösung:
+   "eingeloggt" = es gibt einen Token in localStorage.
+   -> wenn du später Cookies/Session nutzt, passt du refreshAuth() an.
+--------------------------------------------------- */
 const isLoggedIn = ref(false)
 
-async function refreshAuth() {
-  try {
-    isLoggedIn.value = await oktaAuth.isAuthenticated()
-  } catch {
-    isLoggedIn.value = false
-  }
+function refreshAuth() {
+  // anpassen, falls du später andere Keys nutzt
+  const token =
+      localStorage.getItem('auth_token') ||
+      localStorage.getItem('token') ||
+      localStorage.getItem('access_token')
+
+  isLoggedIn.value = !!token
 }
 
-async function login() {
-  await oktaAuth.signInWithRedirect({ originalUri: window.location.pathname })
+function login() {
+  router.push('/login')
 }
 
-async function logout() {
-  try {
-    await oktaAuth.signOut({ postLogoutRedirectUri: window.location.origin + '/' })
-  } finally {
-    await refreshAuth()
-    await router.push('/')
-  }
+function logout() {
+  // alles weg, was Login speichern könnte
+  localStorage.removeItem('auth_token')
+  localStorage.removeItem('token')
+  localStorage.removeItem('access_token')
+  localStorage.removeItem('user')
+  refreshAuth()
+
+  // optional: zurück nach Hause
+  router.push('/')
+}
+
+/* ---------------- Search ---------------- */
+const searchQuery = ref('')
+
+function onSearchEnter() {
+  router.push({ path: '/items', query: { q: searchQuery.value } })
 }
 
 /* ---------------- State ---------------- */
@@ -43,6 +59,7 @@ const wegwerfAm = ref('')
 const kaufpreis = ref('')
 const wunschVerkaufspreis = ref('')
 
+/* ---------------- API Base ---------------- */
 const baseUrl = import.meta.env.VITE_APP_BACKEND_BASE_URL
 const endpoint = `${baseUrl}/gegenstaende`
 
@@ -63,15 +80,33 @@ function formatDateTime(v) {
   return String(v).replace('T', ' ').slice(0, 16)
 }
 
+/* ---------------- (Optional) Auth Header ----------------
+   Falls dein Backend später "Authorization: Bearer <token>" erwartet,
+   lass das hier drin. Wenn nicht, bleibt token einfach leer.
+---------------------------------------------------------- */
+function authHeaders() {
+  const token =
+      localStorage.getItem('auth_token') ||
+      localStorage.getItem('token') ||
+      localStorage.getItem('access_token')
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
 /* ---------------- Data ---------------- */
 async function ladeDaten() {
   fehler.value = ''
   try {
-    const res = await fetch(endpoint)
+    const res = await fetch(endpoint, {
+      headers: {
+        ...authHeaders()
+      }
+    })
+
     if (!res.ok) {
       const text = await res.text().catch(() => '')
       throw new Error(`GET fehlgeschlagen: HTTP ${res.status}${text ? ` – ${text}` : ''}`)
     }
+
     liste.value = await res.json()
   } catch (e) {
     fehler.value = String(e)
@@ -100,7 +135,10 @@ async function speichern() {
   try {
     const res = await fetch(endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders()
+      },
       body: JSON.stringify(neuerGegenstand)
     })
 
@@ -130,11 +168,17 @@ const notifError = ref('')
 async function ladeNotifications() {
   notifError.value = ''
   try {
-    const res = await fetch(`${baseUrl}/notifications?unseenOnly=true`)
+    const res = await fetch(`${baseUrl}/notifications?unseenOnly=true`, {
+      headers: {
+        ...authHeaders()
+      }
+    })
+
     if (!res.ok) {
       const text = await res.text().catch(() => '')
       throw new Error(`Notifications GET fehlgeschlagen: HTTP ${res.status}${text ? ` – ${text}` : ''}`)
     }
+
     notifications.value = await res.json()
   } catch (e) {
     notifError.value = String(e)
@@ -144,11 +188,18 @@ async function ladeNotifications() {
 async function markNotifSeen(id) {
   notifError.value = ''
   try {
-    const res = await fetch(`${baseUrl}/notifications/${id}/seen`, { method: 'PUT' })
+    const res = await fetch(`${baseUrl}/notifications/${id}/seen`, {
+      method: 'PUT',
+      headers: {
+        ...authHeaders()
+      }
+    })
+
     if (!res.ok) {
       const text = await res.text().catch(() => '')
       throw new Error(`seen PUT fehlgeschlagen: HTTP ${res.status}${text ? ` – ${text}` : ''}`)
     }
+
     await ladeNotifications()
   } catch (e) {
     notifError.value = String(e)
@@ -164,23 +215,26 @@ function goToAddAndFocus() {
 }
 
 let notifInterval = null
-let authUnsub = null
+
+function onStorageChange(e) {
+  // falls Token/Login in einem anderen Tab geändert wird
+  if (['auth_token', 'token', 'access_token', 'user'].includes(e.key)) {
+    refreshAuth()
+  }
+}
 
 onMounted(async () => {
-  ladeDaten()
-  ladeNotifications()
-  notifInterval = setInterval(ladeNotifications, 30000)
+  refreshAuth()
+  window.addEventListener('storage', onStorageChange)
 
-  // ✅ Auth Status live updaten (Login/Logout Pill) — RICHTIG
-  await refreshAuth()
-  const handler = () => refreshAuth()
-  oktaAuth.authStateManager.subscribe(handler)
-  authUnsub = () => oktaAuth.authStateManager.unsubscribe(handler)
+  await ladeDaten()
+  await ladeNotifications()
+  notifInterval = setInterval(ladeNotifications, 30000)
 })
 
 onBeforeUnmount(() => {
   if (notifInterval) clearInterval(notifInterval)
-  if (authUnsub) authUnsub()
+  window.removeEventListener('storage', onStorageChange)
 })
 </script>
 
@@ -190,16 +244,21 @@ onBeforeUnmount(() => {
     <header class="topbar">
       <div class="topbar-inner">
         <div class="brand">
-          <!-- ✅ war bei dir aus Versehen "tips" -->
           <div class="logo-dot" />
           <span>Can I Go?</span>
         </div>
 
         <nav class="nav">
-          <!-- ✅ Home bleibt als Pill -->
-          <RouterLink to="/" class="navlink" :class="{ active: route.path === '/' }">Home</RouterLink>
+          <div class="nav-search">
+            <input
+                v-model="searchQuery"
+                class="nav-search-input"
+                type="search"
+                placeholder="Suche nach Gegenstand…"
+                @keydown.enter.prevent="onSearchEnter"
+            />
+          </div>
 
-          <!-- ✅ Erinnerungen -->
           <RouterLink
               to="/notifications"
               class="navlink"
@@ -208,7 +267,7 @@ onBeforeUnmount(() => {
             Erinnerungen ({{ notifications.length }})
           </RouterLink>
 
-          <!-- ✅ Login Pill direkt daneben (wie du willst) -->
+          <!-- Login / Logout ohne Okta -->
           <button
               v-if="!isLoggedIn"
               class="navlink as-btn"
@@ -400,6 +459,7 @@ onBeforeUnmount(() => {
       <main class="content">
         <RouterView
             :liste="liste"
+            :searchQuery="route.query.q ?? searchQuery"
             :notifications="notifications"
             :notifError="notifError"
             :formatMoney="formatMoney"
@@ -459,6 +519,26 @@ onBeforeUnmount(() => {
   background: rgba(7,10,18,.55);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--br-border);
+}
+.nav-search{
+  display:flex;
+  align-items:center;
+}
+
+.nav-search-input{
+  width: 240px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(230,242,255,.16);
+  background: rgba(230,242,255,.06);
+  color: rgba(230,242,255,.92);
+  outline: none;
+  font-size: 14px;
+}
+
+.nav-search-input:focus{
+  border-color: rgba(41,243,255,.30);
+  box-shadow: 0 0 0 1px rgba(41,243,255,.18), 0 0 22px rgba(41,243,255,.12);
 }
 
 .topbar-inner{
