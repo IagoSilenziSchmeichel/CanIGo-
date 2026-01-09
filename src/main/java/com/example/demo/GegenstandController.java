@@ -2,13 +2,17 @@ package com.example.demo;
 
 import com.example.demo.dto.GegenstandCreateDto;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.net.URI;
 import java.util.List;
 
-@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/gegenstaende")
 public class GegenstandController {
@@ -21,19 +25,21 @@ public class GegenstandController {
 
     @GetMapping
     public List<Gegenstand> getAlleGegenstaende() {
-        return service.getAll();
+        Long userId = currentUserIdOrThrow();
+        return service.getAllForUser(userId);
     }
-
 
     @GetMapping("/{id}")
     public Gegenstand getEinen(@PathVariable Long id) {
-        return service.getById(id);
+        Long userId = currentUserIdOrThrow();
+        return service.getByIdForUser(userId, id);
     }
 
     @PostMapping
     public ResponseEntity<Gegenstand> create(@Valid @RequestBody GegenstandCreateDto dto) {
-        Gegenstand created = service.create(dto);
-        // Location Header: /gegenstaende/{id}
+        Long userId = currentUserIdOrThrow();
+        Gegenstand created = service.createForUser(userId, dto);
+
         return ResponseEntity
                 .created(URI.create("/gegenstaende/" + created.getId()))
                 .body(created);
@@ -41,14 +47,32 @@ public class GegenstandController {
 
     @PutMapping("/{id}")
     public Gegenstand update(@PathVariable Long id, @Valid @RequestBody GegenstandCreateDto dto) {
-        return service.update(id, dto);
+        Long userId = currentUserIdOrThrow();
+        return service.updateForUser(userId, id, dto);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        service.delete(id);
+        Long userId = currentUserIdOrThrow();
+        service.deleteForUser(userId, id);
         return ResponseEntity.noContent().build();
     }
 
+    /**
+     * Holt die User-ID des eingeloggten Users.
+     * Wir nehmen Authentication.getName() (Email/Username) und mappen auf die interne User-ID.
+     */
+    private Long currentUserIdOrThrow() {
+        Authentication a = SecurityContextHolder.getContext().getAuthentication();
 
+        if (a == null
+                || !a.isAuthenticated()
+                || a instanceof AnonymousAuthenticationToken
+                || a.getName() == null
+                || a.getName().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Nicht eingeloggt");
+        }
+
+        return service.resolveUserIdByEmail(a.getName());
+    }
 }

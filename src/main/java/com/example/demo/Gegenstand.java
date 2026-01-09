@@ -1,5 +1,6 @@
 package com.example.demo;
 
+import com.example.demo.user.AppUser;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -13,6 +14,11 @@ public class Gegenstand {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    // ✅ Owner (User) – NUR EINMAL
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id", nullable = false)
+    private AppUser owner;
 
     @NotBlank
     private String name;
@@ -60,7 +66,11 @@ public class Gegenstand {
         this.wunschVerkaufpreis = wunschVerkaufpreis;
     }
 
+    // ✅ Getter/Setter
     public Long getId() { return id; }
+
+    public AppUser getOwner() { return owner; }
+    public void setOwner(AppUser owner) { this.owner = owner; }
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
@@ -83,17 +93,15 @@ public class Gegenstand {
     public BigDecimal getKaufpreis() { return kaufpreis; }
     public void setKaufpreis(BigDecimal kaufpreis) { this.kaufpreis = kaufpreis; }
 
-    public BigDecimal getWunschVerkaufspreis() { return wunschVerkaufpreis; }
+    public BigDecimal getWunschVerkaufpreis() { return wunschVerkaufpreis; }
     public void setWunschVerkaufpreis(BigDecimal wunschVerkaufpreis) { this.wunschVerkaufpreis = wunschVerkaufpreis; }
 
-    //  Getter/Setter null-sicher
     public Boolean getErinnerungAktiv() { return erinnerungAktiv; }
     public void setErinnerungAktiv(Boolean v) { this.erinnerungAktiv = v; }
 
     public Boolean getErinnerungGesendet() { return erinnerungGesendet; }
     public void setErinnerungGesendet(Boolean v) { this.erinnerungGesendet = v; }
 
-    // Optional: Helper für sauberes if() ohne Nullprobleme
     public boolean isErinnerungAktivTrue() {
         return Boolean.TRUE.equals(erinnerungAktiv);
     }

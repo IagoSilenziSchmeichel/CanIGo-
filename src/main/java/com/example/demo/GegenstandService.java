@@ -1,8 +1,10 @@
 package com.example.demo;
 
 import com.example.demo.dto.GegenstandCreateDto;
-import org.springframework.stereotype.Service;
 import com.example.demo.error.NotFoundException;
+import com.example.demo.user.AppUser;
+import com.example.demo.user.AppUserRepository;
+import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -11,39 +13,60 @@ import java.util.List;
 public class GegenstandService {
 
     private final GegenstandRepository repo;
+    private final AppUserRepository userRepo;
 
-    public GegenstandService(GegenstandRepository repo) {
+    public GegenstandService(GegenstandRepository repo, AppUserRepository userRepo) {
         this.repo = repo;
+        this.userRepo = userRepo;
     }
 
-    public Gegenstand create(GegenstandCreateDto dto) {
-        Gegenstand g = new Gegenstand();
-        applyDto(g, dto);
-        return repo.save(g);
+    // wird vom Controller benutzt (Email -> UserId)
+    public Long resolveUserIdByEmail(String email) {
+        return userRepo.findByEmailIgnoreCase(email)
+                .map(AppUser::getId)
+                .orElseThrow(() -> new RuntimeException("User nicht gefunden: " + email));
     }
 
-    public Gegenstand getById(Long id) {
-        return repo.findById(id)
+    //  Multi-User: nur eigene Gegenstände
+    public List<Gegenstand> getAllForUser(Long userId) {
+        return repo.findAllByOwner_Id(userId);
+    }
+
+    public Gegenstand getByIdForUser(Long userId, Long id) {
+        return repo.findByIdAndOwner_Id(id, userId)
                 .orElseThrow(() -> new NotFoundException("Gegenstand nicht gefunden: " + id));
     }
 
-    public void delete(Long id) {
-        if (!repo.existsById(id)) {
-            throw new NotFoundException("Gegenstand nicht gefunden: " + id);
-        }
-        repo.deleteById(id);
+    public Gegenstand createForUser(Long userId, GegenstandCreateDto dto) {
+        AppUser owner = userRepo.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User nicht gefunden: " + userId));
+
+        Gegenstand g = new Gegenstand();
+        g.setOwner(owner); // Ownership setzen
+        applyDto(g, dto);
+
+        return repo.save(g);
     }
-    public Gegenstand update(Long id, GegenstandCreateDto dto) {
-        Gegenstand g = getById(id);
+
+    public Gegenstand updateForUser(Long userId, Long id, GegenstandCreateDto dto) {
+        Gegenstand g = getByIdForUser(userId, id); //  Ownership check
         applyDto(g, dto);
         return repo.save(g);
     }
-    public boolean istWegwerfbar() {
-        LocalDate lastUsed = null;
+
+    public void deleteForUser(Long userId, Long id) {
+        if (!repo.existsByIdAndOwner_Id(id, userId)) {
+            throw new NotFoundException("Gegenstand nicht gefunden: " + id);
+        }
+        repo.deleteByIdAndOwner_Id(id, userId);
+    }
+
+    // optional helper
+    public boolean istWegwerfbar(LocalDate lastUsed) {
         return lastUsed != null && lastUsed.isBefore(LocalDate.now().minusMonths(6));
     }
 
-    private void applyDto(Gegenstand g, GegenstandCreateDto dto){
+    private void applyDto(Gegenstand g, GegenstandCreateDto dto) {
         g.setName(dto.getName());
         g.setOrt(dto.getOrt());
         g.setWichtigkeit(dto.getWichtigkeit());
@@ -52,9 +75,5 @@ public class GegenstandService {
         g.setWegwerfAm(dto.getWegwerfAm());
         g.setKaufpreis(dto.getKaufpreis());
         g.setWunschVerkaufpreis(dto.getWunschVerkaufpreis());
-
-    }
-    public List<Gegenstand> getAll() {
-        return repo.findAll();
     }
 }
