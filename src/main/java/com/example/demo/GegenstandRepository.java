@@ -10,13 +10,12 @@ import java.util.Optional;
 @Repository
 public interface GegenstandRepository extends CrudRepository<Gegenstand, Long> {
 
-    // Standard
     List<Gegenstand> findAll();
 
-    // Reminder-Query
+    // Reminder-Query (unabhängig vom Owner – später evtl. filtern)
     List<Gegenstand> findAllByWegwerfAmLessThanEqualAndErinnerungAktivTrueAndErinnerungGesendetFalse(LocalDate date);
 
-    //  Multi-User: alles nur für Owner
+    // ✅ Multi-User: alles nur für Owner
     List<Gegenstand> findAllByOwner_Id(Long ownerId);
 
     Optional<Gegenstand> findByIdAndOwner_Id(Long id, Long ownerId);

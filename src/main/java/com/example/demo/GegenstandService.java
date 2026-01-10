@@ -20,14 +20,7 @@ public class GegenstandService {
         this.userRepo = userRepo;
     }
 
-    // wird vom Controller benutzt (Email -> UserId)
-    public Long resolveUserIdByEmail(String email) {
-        return userRepo.findByEmailIgnoreCase(email)
-                .map(AppUser::getId)
-                .orElseThrow(() -> new RuntimeException("User nicht gefunden: " + email));
-    }
-
-    //  Multi-User: nur eigene Gegenstände
+    // ✅ Multi-User: nur eigene Gegenstände
     public List<Gegenstand> getAllForUser(Long userId) {
         return repo.findAllByOwner_Id(userId);
     }
@@ -42,14 +35,14 @@ public class GegenstandService {
                 .orElseThrow(() -> new RuntimeException("User nicht gefunden: " + userId));
 
         Gegenstand g = new Gegenstand();
-        g.setOwner(owner); // Ownership setzen
+        g.setOwner(owner); // ✅ Ownership setzen
         applyDto(g, dto);
 
         return repo.save(g);
     }
 
     public Gegenstand updateForUser(Long userId, Long id, GegenstandCreateDto dto) {
-        Gegenstand g = getByIdForUser(userId, id); //  Ownership check
+        Gegenstand g = getByIdForUser(userId, id); // ✅ Ownership check
         applyDto(g, dto);
         return repo.save(g);
     }
@@ -61,7 +54,6 @@ public class GegenstandService {
         repo.deleteByIdAndOwner_Id(id, userId);
     }
 
-    // optional helper
     public boolean istWegwerfbar(LocalDate lastUsed) {
         return lastUsed != null && lastUsed.isBefore(LocalDate.now().minusMonths(6));
     }

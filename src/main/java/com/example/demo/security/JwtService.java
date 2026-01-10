@@ -23,13 +23,12 @@ public class JwtService {
         this.ttlMs = ttlMs;
     }
 
-    public String createToken(Long userId, String email) {
+    public String createToken(Long userId) {
         Date now = new Date();
         Date exp = new Date(now.getTime() + ttlMs);
 
         return Jwts.builder()
                 .setSubject(String.valueOf(userId))
-                .claim("email", email)
                 .setIssuedAt(now)
                 .setExpiration(exp)
                 .signWith(key, SignatureAlgorithm.HS256)

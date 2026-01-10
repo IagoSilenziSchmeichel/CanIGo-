@@ -63,16 +63,10 @@ public class GegenstandController {
      * Wir nehmen Authentication.getName() (Email/Username) und mappen auf die interne User-ID.
      */
     private Long currentUserIdOrThrow() {
-        Authentication a = SecurityContextHolder.getContext().getAuthentication();
-
-        if (a == null
-                || !a.isAuthenticated()
-                || a instanceof AnonymousAuthenticationToken
-                || a.getName() == null
-                || a.getName().isBlank()) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Nicht eingeloggt");
+        var a = SecurityContextHolder.getContext().getAuthentication();
+        if (a == null || !a.isAuthenticated() || a.getPrincipal() == null) {
+            throw new RuntimeException("Nicht eingeloggt");
         }
-
-        return service.resolveUserIdByEmail(a.getName());
+        return (Long) a.getPrincipal(); //  userId aus JWT Filter
     }
 }

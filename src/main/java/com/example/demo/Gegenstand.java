@@ -1,6 +1,7 @@
 package com.example.demo;
 
 import com.example.demo.user.AppUser;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -15,8 +16,9 @@ public class Gegenstand {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // ✅ Owner (User) – NUR EINMAL
-    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    // ✅ Owner (User)
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "owner_id", nullable = false)
     private AppUser owner;
 
@@ -40,7 +42,6 @@ public class Gegenstand {
     private BigDecimal kaufpreis;
     private BigDecimal wunschVerkaufpreis;
 
-    // Reminder-Flags (null-sicher)
     private Boolean erinnerungAktiv = true;
     private Boolean erinnerungGesendet = false;
 
@@ -66,7 +67,6 @@ public class Gegenstand {
         this.wunschVerkaufpreis = wunschVerkaufpreis;
     }
 
-    // ✅ Getter/Setter
     public Long getId() { return id; }
 
     public AppUser getOwner() { return owner; }
@@ -102,11 +102,6 @@ public class Gegenstand {
     public Boolean getErinnerungGesendet() { return erinnerungGesendet; }
     public void setErinnerungGesendet(Boolean v) { this.erinnerungGesendet = v; }
 
-    public boolean isErinnerungAktivTrue() {
-        return Boolean.TRUE.equals(erinnerungAktiv);
-    }
-
-    public boolean isErinnerungGesendetTrue() {
-        return Boolean.TRUE.equals(erinnerungGesendet);
-    }
+    public boolean isErinnerungAktivTrue() { return Boolean.TRUE.equals(erinnerungAktiv); }
+    public boolean isErinnerungGesendetTrue() { return Boolean.TRUE.equals(erinnerungGesendet); }
 }

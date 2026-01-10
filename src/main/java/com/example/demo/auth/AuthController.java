@@ -30,15 +30,14 @@ public class AuthController {
             return ResponseEntity.badRequest().body("Email already in use");
         }
 
-        AppUser u = AppUser.builder()
-                .name(req.name().trim())
-                .email(req.email().trim().toLowerCase())
-                .passwordHash(encoder.encode(req.password()))
-                .build();
+        AppUser u = new AppUser();
+        u.setName(req.name().trim());
+        u.setEmail(req.email().trim().toLowerCase());
+        u.setPasswordHash(encoder.encode(req.password()));
 
         u = users.save(u);
 
-        String token = jwtService.createToken(u.getId(), u.getEmail());
+        String token = jwtService.createToken(u.getId());
         return ResponseEntity.ok(new AuthResponse(token, u.getId(), u.getEmail(), u.getName()));
     }
 
@@ -52,7 +51,7 @@ public class AuthController {
             return ResponseEntity.status(401).body("Invalid credentials");
         }
 
-        String token = jwtService.createToken(u.getId(), u.getEmail());
+        String token = jwtService.createToken(u.getId());
         return ResponseEntity.ok(new AuthResponse(token, u.getId(), u.getEmail(), u.getName()));
     }
 }

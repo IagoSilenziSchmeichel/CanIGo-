@@ -1,24 +1,42 @@
 package com.example.demo;
 
 import com.example.demo.dto.GegenstandCreateDto;
+import com.example.demo.security.JwtAuthFilter;
+import com.example.demo.security.SecurityConfig;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(GegenstandController.class)
+@WebMvcTest(
+        controllers = GegenstandController.class,
+        excludeFilters = {
+                @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = SecurityConfig.class),
+                @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = JwtAuthFilter.class)
+        }
+)
+@AutoConfigureMockMvc(addFilters = false)
 class GegenstandControllerTest {
 
     @Autowired
@@ -27,20 +45,29 @@ class GegenstandControllerTest {
     @MockBean
     private GegenstandService service;
 
-    // --- TEST 1: Liste abrufen (leer) ---
+    @BeforeEach
+    void setAuth() {
+        // principal = userId (Long), so wie dein JwtAuthFilter es setzt
+        var auth = new UsernamePasswordAuthenticationToken(1L, null, List.of());
+        SecurityContextHolder.getContext().setAuthentication(auth);
+    }
+
+    @AfterEach
+    void clearAuth() {
+        SecurityContextHolder.clearContext();
+    }
+
     @Test
     void testGetAlle_Empty() throws Exception {
-        when(service.getAll()).thenReturn(Collections.emptyList());
+        when(service.getAllForUser(1L)).thenReturn(Collections.emptyList());
 
         mockMvc.perform(get("/gegenstaende"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.size()").value(0));
     }
 
-    // --- TEST 2: Liste abrufen (mit Daten) ---
     @Test
     void testGetAlle_WithData() throws Exception {
-        // Hier nutzen wir den neuen, großen Konstruktor
         var item = new Gegenstand(
                 "Hammer",
                 "Keller",
@@ -48,13 +75,8 @@ class GegenstandControllerTest {
                 GegenstandKategorie.HAUSHALT,
                 null, null, null, null
         );
-        // Da wir keine Setter für ID haben, simulieren wir das
-        // (JPA setzt ID per Reflection, Mockito kann das auch, aber hier vereinfacht:)
-        // Achtung: Wenn dein Gegenstand keine setId() hat, kann der Controller Test keine ID prüfen,
-        // außer wir nutzen Reflection oder Mockito-Returns.
-        // Für diesen Test reicht es, dass der Name stimmt.
 
-        when(service.getAll()).thenReturn(List.of(item));
+        when(service.getAllForUser(1L)).thenReturn(List.of(item));
 
         mockMvc.perform(get("/gegenstaende"))
                 .andExpect(status().isOk())
@@ -62,76 +84,86 @@ class GegenstandControllerTest {
                 .andExpect(jsonPath("$[0].wichtigkeit").value("WICHTIG"));
     }
 
-    // --- TEST 3: Einzelnen Gegenstand holen ---
     @Test
     void testGetOne() throws Exception {
-        var item = new Gegenstand("Buch", "Regal", Wichtigkeit.UNWICHTIG, GegenstandKategorie.SONSTIGES, null, null, null, null);
-        when(service.getById(10L)).thenReturn(item);
+        var item = new Gegenstand(
+                "Buch",
+                "Regal",
+                Wichtigkeit.UNWICHTIG,
+                GegenstandKategorie.SONSTIGES,
+                null, null, null, null
+        );
+
+        when(service.getByIdForUser(1L, 10L)).thenReturn(item);
 
         mockMvc.perform(get("/gegenstaende/10"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Buch"));
     }
 
-    // --- TEST 4: Gegenstand erstellen (POST) ---
     @Test
     void testCreate_Success() throws Exception {
-        // Das JSON muss jetzt auch die Enums enthalten!
         String jsonBody = """
             {
-                "name": "Neu",
-                "ort": "Hier",
-                "wichtigkeit": "WICHTIG",
-                "kategorie": "SONSTIGES"
+              "name": "Neu",
+              "ort": "Hier",
+              "wichtigkeit": "WICHTIG",
+              "kategorie": "SONSTIGES"
             }
         """;
 
-        var created = new Gegenstand("Neu", "Hier", Wichtigkeit.WICHTIG, GegenstandKategorie.SONSTIGES, null, null, null, null);
-        // Wir nehmen an, dass die ID 1L ist (simuliert)
+        var created = new Gegenstand(
+                "Neu",
+                "Hier",
+                Wichtigkeit.WICHTIG,
+                GegenstandKategorie.SONSTIGES,
+                null, null, null, null
+        );
 
-        // Da der Controller created.getId() aufruft für den Location-Header, müssen wir sicherstellen, dass ID nicht null ist.
-        // Option A: Reflection nutzen (sauber).
-        try {
-            var field = com.example.demo.Gegenstand.class.getDeclaredField("id");
-            field.setAccessible(true);
-            field.set(created, 1L);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        setIdViaReflection(created, 1L);
 
-        when(service.create(any(GegenstandCreateDto.class))).thenReturn(created);
+        when(service.createForUser(eq(1L), any(GegenstandCreateDto.class))).thenReturn(created);
 
         mockMvc.perform(post("/gegenstaende")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonBody))
                 .andExpect(status().isCreated())
-                .andExpect(header().exists("Location"));
+                .andExpect(header().string("Location", "/gegenstaende/1"));
     }
 
-    // --- TEST 5: Validierung fehlgeschlagen (Kategorie fehlt) ---
     @Test
     void testCreate_ValidationFail() throws Exception {
-        // Hier fehlt "kategorie", was @NotNull ist
         String invalidJson = """
             {
-                "name": "Ding",
-                "ort": "Hier",
-                "wichtigkeit": "WICHTIG"
+              "name": "Ding",
+              "ort": "Hier",
+              "wichtigkeit": "WICHTIG"
             }
         """;
 
         mockMvc.perform(post("/gegenstaende")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(invalidJson))
-                .andExpect(status().isBadRequest()); // 400
+                .andExpect(status().isBadRequest());
     }
 
-    // --- TEST 6: Löschen ---
     @Test
     void testDelete() throws Exception {
+        doNothing().when(service).deleteForUser(1L, 99L);
+
         mockMvc.perform(delete("/gegenstaende/99"))
                 .andExpect(status().isNoContent());
 
-        verify(service).delete(99L);
+        verify(service).deleteForUser(1L, 99L);
+    }
+
+    private static void setIdViaReflection(Gegenstand g, Long id) {
+        try {
+            Field f = Gegenstand.class.getDeclaredField("id");
+            f.setAccessible(true);
+            f.set(g, id);
+        } catch (Exception e) {
+            throw new RuntimeException("Could not set id via reflection", e);
+        }
     }
 }
