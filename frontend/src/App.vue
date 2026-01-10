@@ -1,32 +1,29 @@
-<!-- src/App.vue -->
+<!-- frontend/src/App.vue -->
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 
-// Nutze zentrale API (setzt Authorization Header automatisch)
+// ✅ WICHTIG: Pfad anpassen, je nachdem wie du api.js importierst
+// Wenn deine api.js wirklich unter frontend/src/api.js liegt, ist das korrekt:
 import {
   getToken,
   clearToken,
   getGegenstaende,
   createGegenstand,
   apiFetch
-} from '@/api' // falls dein Pfad anders ist: '../api' oder '@/api.js'
+} from './api' // <-- wenn du alias @ nutzt: '@/api' geht auch, aber nur wenn Vite alias stimmt
 
 const route = useRoute()
 const router = useRouter()
 
-/*
-  Auth:
-  - Backend erwartet: Authorization: Bearer <token>
-  - Token wird in src/api.js unter localStorage key "token" verwaltet
-*/
+/* ---------------- Auth ---------------- */
 const isLoggedIn = ref(false)
 
 function refreshAuth() {
   isLoggedIn.value = !!getToken()
 }
 
-function login() {
+function goLogin() {
   router.push('/login')
 }
 
@@ -36,14 +33,23 @@ function logout() {
   router.push('/')
 }
 
-/* Search */
+function handleAuthError(e) {
+  const msg = String(e?.message || e)
+  if (/401|403|nicht eingeloggt|token/i.test(msg)) {
+    logout()
+    return 'Nicht eingeloggt oder Token abgelaufen.'
+  }
+  return msg
+}
+
+/* ---------------- Search ---------------- */
 const searchQuery = ref('')
 
 function onSearchEnter() {
   router.push({ path: '/items', query: { q: searchQuery.value } })
 }
 
-/* State */
+/* ---------------- State ---------------- */
 const liste = ref([])
 const fehler = ref('')
 
@@ -56,7 +62,7 @@ const wegwerfAm = ref('')
 const kaufpreis = ref('')
 const wunschVerkaufspreis = ref('')
 
-/* Helpers */
+/* ---------------- Helpers ---------------- */
 function formatMoney(v) {
   if (v === null || v === undefined || v === '') return '—'
   const n = Number(v)
@@ -73,28 +79,19 @@ function formatDateTime(v) {
   return String(v).replace('T', ' ').slice(0, 16)
 }
 
-/* Data */
+/* ---------------- Data: Gegenstände ---------------- */
 async function ladeDaten() {
   fehler.value = ''
 
-  // Wenn nicht eingeloggt: keine geschützten Calls machen
   if (!isLoggedIn.value) {
     liste.value = []
     return
   }
 
   try {
-    // über api.js -> Authorization automatisch
     liste.value = await getGegenstaende()
   } catch (e) {
-    // optional: wenn Backend 401/403 wirft -> ausloggen
-    const msg = String(e?.message || e)
-    if (/401|403|Nicht eingeloggt|Token/i.test(msg)) {
-      logout()
-      fehler.value = 'Nicht eingeloggt oder Token abgelaufen.'
-      return
-    }
-    fehler.value = msg
+    fehler.value = handleAuthError(e)
   }
 }
 
@@ -111,7 +108,7 @@ async function speichern() {
     return
   }
 
-  const neuerGegenstand = {
+  const payload = {
     name: name.value.trim(),
     ort: ort.value.trim(),
     wichtigkeit: wichtigkeit.value,
@@ -122,11 +119,13 @@ async function speichern() {
     wunschVerkaufspreis: wunschVerkaufspreis.value !== '' ? Number(wunschVerkaufspreis.value) : null
   }
 
-  try {
-    // über api.js -> Authorization automatisch
-    await createGegenstand(neuerGegenstand)
+  // ✅ Debug: damit wir den 500 Fehler im Backend verstehen
+  console.log('POST /gegenstaende payload:', payload)
 
-    // Form reset
+  try {
+    await createGegenstand(payload)
+
+    // reset form
     name.value = ''
     ort.value = ''
     lastUsed.value = ''
@@ -137,17 +136,11 @@ async function speichern() {
     await ladeDaten()
     await ladeNotifications()
   } catch (e) {
-    const msg = String(e?.message || e)
-    if (/401|403|Nicht eingeloggt|Token/i.test(msg)) {
-      logout()
-      fehler.value = 'Nicht eingeloggt oder Token abgelaufen.'
-      return
-    }
-    fehler.value = msg
+    fehler.value = handleAuthError(e)
   }
 }
 
-/* Notifications */
+/* ---------------- Notifications ---------------- */
 const notifications = ref([])
 const notifError = ref('')
 
@@ -160,16 +153,9 @@ async function ladeNotifications() {
   }
 
   try {
-    //  Kein baseUrl / fetch mehr, sondern apiFetch
     notifications.value = await apiFetch('/notifications?unseenOnly=true', { method: 'GET' })
   } catch (e) {
-    const msg = String(e?.message || e)
-    if (/401|403|Nicht eingeloggt|Token/i.test(msg)) {
-      logout()
-      notifError.value = 'Nicht eingeloggt oder Token abgelaufen.'
-      return
-    }
-    notifError.value = msg
+    notifError.value = handleAuthError(e)
   }
 }
 
@@ -185,17 +171,11 @@ async function markNotifSeen(id) {
     await apiFetch(`/notifications/${id}/seen`, { method: 'PUT' })
     await ladeNotifications()
   } catch (e) {
-    const msg = String(e?.message || e)
-    if (/401|403|Nicht eingeloggt|Token/i.test(msg)) {
-      logout()
-      notifError.value = 'Nicht eingeloggt oder Token abgelaufen.'
-      return
-    }
-    notifError.value = msg
+    notifError.value = handleAuthError(e)
   }
 }
 
-/* Home-only helper */
+/* ---------------- Home-only helper ---------------- */
 function goToAddAndFocus() {
   if (route.path !== '/') router.push('/')
   setTimeout(() => {
@@ -203,12 +183,12 @@ function goToAddAndFocus() {
   }, 50)
 }
 
+/* ---------------- Lifecycle ---------------- */
 let notifInterval = null
 
 function onStorageChange(e) {
   if (['token', 'user'].includes(e.key)) {
     refreshAuth()
-    // wenn Login/Logout in anderem Tab: Daten neu ziehen oder leeren
     ladeDaten()
     ladeNotifications()
   }
@@ -259,18 +239,22 @@ onBeforeUnmount(() => {
             Erinnerungen ({{ notifications.length }})
           </RouterLink>
 
-          <!-- Login / Logout -->
           <button
               v-if="!isLoggedIn"
               class="navlink as-btn"
               type="button"
               :class="{ active: route.path === '/login' }"
-              @click="login"
+              @click="goLogin"
           >
             Login
           </button>
 
-          <button v-else class="navlink as-btn" type="button" @click="logout">
+          <button
+              v-else
+              class="navlink as-btn"
+              type="button"
+              @click="logout"
+          >
             Logout
           </button>
 
@@ -289,7 +273,6 @@ onBeforeUnmount(() => {
 
     <!-- HOME -->
     <template v-if="route.path === '/'">
-      <!-- Hero -->
       <section class="hero">
         <div class="hero-inner">
           <div>
@@ -316,7 +299,6 @@ onBeforeUnmount(() => {
             </div>
           </div>
 
-          <!-- Decorative Card -->
           <div class="hero-card">
             <div class="hero-card-top">
               <span class="mini-title">Quick Insight</span>
@@ -338,9 +320,7 @@ onBeforeUnmount(() => {
         </div>
       </section>
 
-      <!-- Content -->
       <main class="content">
-        <!-- TIPPS -->
         <section class="panel">
           <div class="panel-head">
             <h2>Tipps: Was du mit alten Gegenständen tun kannst</h2>
@@ -374,7 +354,6 @@ onBeforeUnmount(() => {
           </div>
         </section>
 
-        <!-- FORM -->
         <section id="add" class="panel">
           <div class="panel-head">
             <h2>Neuen Gegenstand hinzufügen</h2>
@@ -429,12 +408,7 @@ onBeforeUnmount(() => {
 
             <label class="field">
               <span>Wunsch-Verkaufspreis (€)</span>
-              <input
-                  v-model="wunschVerkaufspreis"
-                  type="number"
-                  step="0.01"
-                  placeholder="z.B. 25.00"
-              />
+              <input v-model="wunschVerkaufspreis" type="number" step="0.01" placeholder="z.B. 25.00" />
             </label>
           </div>
 
