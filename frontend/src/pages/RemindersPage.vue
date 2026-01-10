@@ -15,7 +15,7 @@ defineProps({
         <h2>Erinnerungen</h2>
         <p>{{ notifications.length }} ungelesen</p>
       </div>
-      <button class="btn btn-ghost" type="button" @click="ladeNotifications">Neu laden</button>
+      <button class="btn btn-ghost" @click="ladeNotifications">Neu laden</button>
     </div>
 
     <div v-if="notifError" class="alert">
@@ -41,14 +41,12 @@ defineProps({
         </div>
 
         <div class="card-body">
-          <div class="kv"><span>Zeit</span><strong>{{ formatDateTime?.(n.createdAt) ?? n.createdAt }}</strong></div>
+          <div class="kv"><span>Zeit</span><strong>{{ formatDateTime(n.createdAt) }}</strong></div>
           <div class="kv"><span>Gegenstand-ID</span><strong>{{ n.gegenstandId ?? '—' }}</strong></div>
         </div>
 
         <div class="actions" style="margin-top: 12px;">
-          <button class="btn btn-primary" type="button" @click="markNotifSeen(n.id)">
-            Gesehen
-          </button>
+          <button class="btn btn-primary" @click="markNotifSeen(n.id)">Gesehen</button>
         </div>
       </li>
     </ul>

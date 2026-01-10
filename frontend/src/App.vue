@@ -2,16 +2,13 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
-
-// ✅ WICHTIG: Pfad anpassen, je nachdem wie du api.js importierst
-// Wenn deine api.js wirklich unter frontend/src/api.js liegt, ist das korrekt:
 import {
   getToken,
   clearToken,
   getGegenstaende,
   createGegenstand,
   apiFetch
-} from './api' // <-- wenn du alias @ nutzt: '@/api' geht auch, aber nur wenn Vite alias stimmt
+} from './api'
 
 const route = useRoute()
 const router = useRouter()
@@ -82,12 +79,10 @@ function formatDateTime(v) {
 /* ---------------- Data: Gegenstände ---------------- */
 async function ladeDaten() {
   fehler.value = ''
-
   if (!isLoggedIn.value) {
     liste.value = []
     return
   }
-
   try {
     liste.value = await getGegenstaende()
   } catch (e) {
@@ -97,17 +92,14 @@ async function ladeDaten() {
 
 async function speichern() {
   fehler.value = ''
-
   if (!isLoggedIn.value) {
     fehler.value = 'Bitte zuerst einloggen.'
     return
   }
-
   if (!name.value.trim() || !ort.value.trim()) {
     fehler.value = 'Bitte Name und Ort ausfüllen.'
     return
   }
-
   const payload = {
     name: name.value.trim(),
     ort: ort.value.trim(),
@@ -118,21 +110,14 @@ async function speichern() {
     kaufpreis: kaufpreis.value !== '' ? Number(kaufpreis.value) : null,
     wunschVerkaufspreis: wunschVerkaufspreis.value !== '' ? Number(wunschVerkaufspreis.value) : null
   }
-
-  // ✅ Debug: damit wir den 500 Fehler im Backend verstehen
-  console.log('POST /gegenstaende payload:', payload)
-
   try {
     await createGegenstand(payload)
-
-    // reset form
     name.value = ''
     ort.value = ''
     lastUsed.value = ''
     wegwerfAm.value = ''
     kaufpreis.value = ''
     wunschVerkaufspreis.value = ''
-
     await ladeDaten()
     await ladeNotifications()
   } catch (e) {
@@ -146,12 +131,10 @@ const notifError = ref('')
 
 async function ladeNotifications() {
   notifError.value = ''
-
   if (!isLoggedIn.value) {
     notifications.value = []
     return
   }
-
   try {
     notifications.value = await apiFetch('/notifications?unseenOnly=true', { method: 'GET' })
   } catch (e) {
@@ -161,12 +144,10 @@ async function ladeNotifications() {
 
 async function markNotifSeen(id) {
   notifError.value = ''
-
   if (!isLoggedIn.value) {
     notifError.value = 'Bitte zuerst einloggen.'
     return
   }
-
   try {
     await apiFetch(`/notifications/${id}/seen`, { method: 'PUT' })
     await ladeNotifications()
@@ -197,10 +178,8 @@ function onStorageChange(e) {
 onMounted(async () => {
   refreshAuth()
   window.addEventListener('storage', onStorageChange)
-
   await ladeDaten()
   await ladeNotifications()
-
   notifInterval = setInterval(ladeNotifications, 30000)
 })
 
@@ -212,15 +191,12 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="page">
-    <!-- Sticky Top Nav -->
+    <!-- NEU: Strukturierte Topbar -->
     <header class="topbar">
       <div class="topbar-inner">
-        <div class="brand">
-          <div class="logo-dot" />
-          <span>Can I Go?</span>
-        </div>
 
-        <nav class="nav">
+        <!-- LINKS: Die Suche -->
+        <div class="topbar-left">
           <div class="nav-search">
             <input
                 v-model="searchQuery"
@@ -230,6 +206,17 @@ onBeforeUnmount(() => {
                 @keydown.enter.prevent="onSearchEnter"
             />
           </div>
+        </div>
+
+        <!-- MITTE: Navigation -->
+        <nav class="topbar-center">
+          <RouterLink to="/" class="navlink" :class="{ active: route.path === '/' }">
+            Home
+          </RouterLink>
+
+          <RouterLink to="/items" class="navlink" :class="{ active: route.path === '/items' }">
+            Gegenstände
+          </RouterLink>
 
           <RouterLink
               to="/notifications"
@@ -238,12 +225,14 @@ onBeforeUnmount(() => {
           >
             Erinnerungen ({{ notifications.length }})
           </RouterLink>
+        </nav>
 
+        <!-- RECHTS: Login / Logout -->
+        <div class="topbar-right">
           <button
               v-if="!isLoggedIn"
-              class="navlink as-btn"
+              class="navlink as-btn login-btn"
               type="button"
-              :class="{ active: route.path === '/login' }"
               @click="goLogin"
           >
             Login
@@ -251,27 +240,18 @@ onBeforeUnmount(() => {
 
           <button
               v-else
-              class="navlink as-btn"
+              class="navlink as-btn logout-btn"
               type="button"
               @click="logout"
           >
             Logout
           </button>
-
-          <button class="navlink as-btn" type="button" @click="goToAddAndFocus">Hinzufügen</button>
-
-          <RouterLink to="/items" class="navlink" :class="{ active: route.path === '/items' }">
-            Gegenstände
-          </RouterLink>
-        </nav>
-
-        <div class="topbar-actions">
-          <button class="btn btn-primary" type="button" @click="goToAddAndFocus">Start</button>
         </div>
+
       </div>
     </header>
 
-    <!-- HOME -->
+    <!-- HOME CONTENT -->
     <template v-if="route.path === '/'">
       <section class="hero">
         <div class="hero-inner">
@@ -440,7 +420,6 @@ onBeforeUnmount(() => {
             :ladeNotifications="ladeNotifications"
             :markNotifSeen="markNotifSeen"
         />
-
         <footer class="footer">
           <span>© {{ new Date().getFullYear() }} Can I Go?</span>
           <span class="dot">•</span>
@@ -452,25 +431,15 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-/* ---------- Blade Runner 2049 Theme ---------- */
-.page{
+.page {
   --br-bg: #070A12;
   --br-ink: #E6F2FF;
   --br-muted: rgba(230,242,255,.72);
-
   --br-cyan: #29F3FF;
-  --br-teal: #00B7B4;
-  --br-amber: #FFB000;
-  --br-orange: #FF6A00;
-  --br-pink: #FF3DAE;
-
-  --br-glass: rgba(10,14,28,.55);
-  --br-glass2: rgba(10,14,28,.38);
   --br-border: rgba(41,243,255,.14);
-
+  --br-pink: #FF3DAE;
   --br-shadow: 0 22px 70px rgba(0,0,0,.55);
   --br-glow-cyan: 0 0 0 1px rgba(41,243,255,.18), 0 0 22px rgba(41,243,255,.12);
-  --br-glow-amber: 0 0 0 1px rgba(255,176,0,.18), 0 0 22px rgba(255,176,0,.10);
 
   min-height: 100vh;
   color: var(--br-ink);
@@ -482,372 +451,153 @@ onBeforeUnmount(() => {
       var(--br-bg);
 }
 
-/* ---------- Topbar ---------- */
-.topbar{
+/* ---------- Topbar Redesign ---------- */
+.topbar {
   position: sticky;
   top: 0;
-  z-index: 10;
-  background: rgba(7,10,18,.55);
-  backdrop-filter: blur(12px);
+  z-index: 100;
+  background: rgba(7, 10, 18, 0.7);
+  backdrop-filter: blur(15px);
   border-bottom: 1px solid var(--br-border);
 }
-.nav-search{
-  display:flex;
-  align-items:center;
+
+.topbar-inner {
+  max-width: 1400px; /* Breiteres Layout für die Nav */
+  margin: 0 auto;
+  padding: 12px 24px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr; /* Links - Mitte - Rechts */
+  align-items: center;
 }
 
-.nav-search-input{
-  width: 240px;
-  padding: 8px 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(230,242,255,.16);
-  background: rgba(230,242,255,.06);
-  color: rgba(230,242,255,.92);
+.topbar-left {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.topbar-center {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.topbar-right {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Suche */
+.nav-search-input {
+  width: 260px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(230,242,255,.12);
+  background: rgba(230,242,255,.05);
+  color: #fff;
   outline: none;
   font-size: 14px;
+  transition: all 0.3s ease;
 }
 
-.nav-search-input:focus{
-  border-color: rgba(41,243,255,.30);
-  box-shadow: 0 0 0 1px rgba(41,243,255,.18), 0 0 22px rgba(41,243,255,.12);
+.nav-search-input:focus {
+  border-color: var(--br-cyan);
+  box-shadow: var(--br-glow-cyan);
 }
 
-.topbar-inner{
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 14px 18px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.brand{
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-.logo-dot{
-  width: 12px;
-  height: 12px;
-  border-radius: 999px;
-  background: var(--br-ink);
-  box-shadow: 0 0 0 6px rgba(41,243,255,.10);
-}
-
-.nav{
-  display: flex;
-  gap: 14px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.navlink{
-  color: rgba(230,242,255,.72);
+/* Nav Links */
+.navlink {
+  color: var(--br-muted);
   text-decoration: none;
   font-size: 14px;
-  padding: 8px 10px;
+  font-weight: 500;
+  padding: 8px 16px;
   border-radius: 999px;
   border: 1px solid transparent;
-  background: transparent;
-  line-height: 1;
+  transition: all 0.2s;
 }
 
-.navlink:hover{
+.navlink:hover {
+  color: #fff;
   background: rgba(41,243,255,.08);
-  color: rgba(230,242,255,.92);
 }
 
-.navlink.active{
-  border-color: rgba(41,243,255,.22);
-  background: rgba(41,243,255,.08);
-  box-shadow: 0 0 0 1px rgba(41,243,255,.10);
+.navlink.active {
+  color: var(--br-cyan);
+  background: rgba(41,243,255,.1);
+  border-color: rgba(41,243,255,.2);
 }
 
-.navlink.as-btn{
+.as-btn {
+  background: none;
   cursor: pointer;
+  border: none;
 }
 
-.topbar-actions{
-  display: flex;
-  gap: 10px;
-  align-items: center;
+.login-btn {
+  color: var(--br-cyan);
+  border: 1px solid rgba(41,243,255, 0.3);
 }
 
-/* ---------- Hero ---------- */
-.hero{
-  padding: 48px 18px 18px;
+.logout-btn {
+  color: var(--br-pink);
 }
 
-.hero-inner{
+/* ---------- Restliche Styles (Hero, Panels, Form) ---------- */
+.hero { padding: 60px 18px 20px; }
+.hero-inner {
   max-width: 1100px;
   margin: 0 auto;
   display: grid;
   grid-template-columns: 1.2fr .8fr;
-  gap: 16px;
-  align-items: start;
+  gap: 24px;
 }
+.hero-title { font-size: 54px; margin: 0 0 10px; letter-spacing: -0.03em; }
+.hero-sub { color: var(--br-muted); margin-bottom: 24px; line-height: 1.6; }
+.hero-cta { display: flex; gap: 12px; margin-bottom: 20px; }
 
-.hero-title{
-  margin: 0 0 10px;
-  font-size: 54px;
-  line-height: 1.05;
-  letter-spacing: -0.03em;
-  color: rgba(230,242,255,.98);
-}
-
-.hero-sub{
-  margin: 0 0 16px;
-  max-width: 62ch;
-  color: var(--br-muted);
-  font-size: 16px;
-  line-height: 1.55;
-}
-
-.hero-cta{
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.alert{
-  margin-top: 14px;
-  padding: 12px 14px;
-  border-radius: 16px;
-  border: 1px solid rgba(255,106,0,.25);
-  background: rgba(255,106,0,.10);
-  color: rgba(255,240,230,.92);
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-/* right hero card */
-.hero-card{
-  border-radius: 22px;
-  border: 1px solid rgba(41,243,255,.14);
-  background: rgba(10,14,28,.45);
-  backdrop-filter: blur(12px);
-  box-shadow: var(--br-shadow);
-  padding: 16px;
-  align-self: start;
-}
-
-.hero-card-top{
-  display:flex;
-  align-items:center;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-
-.mini-title{
-  font-size: 13px;
-  color: var(--br-muted);
-  font-weight: 600;
-}
-
-.mini-badge{
-  font-size: 12px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,176,0,.18);
-  background: rgba(255,176,0,.08);
-  color: rgba(255,226,180,.95);
-}
-
-.hero-card-row{
-  display:flex;
-  justify-content: space-between;
-  padding: 10px 0;
-  border-top: 1px solid rgba(230,242,255,.10);
-  color: var(--br-muted);
-}
-
-/* ---------- Content Panels ---------- */
-.content{
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 18px 18px 70px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.panel{
+.hero-card {
   border-radius: 22px;
   border: 1px solid var(--br-border);
-  background: var(--br-glass);
-  backdrop-filter: blur(12px);
+  background: rgba(10,14,28,.45);
+  padding: 20px;
   box-shadow: var(--br-shadow);
-  padding: 18px;
+}
+.hero-card-row {
+  display: flex; justify-content: space-between;
+  padding: 12px 0; border-top: 1px solid rgba(230,242,255,.1);
 }
 
-.panel-head{
-  margin-bottom: 12px;
+.content { max-width: 1100px; margin: 0 auto; padding: 20px 18px 80px; display: flex; flex-direction: column; gap: 20px; }
+.panel {
+  border-radius: 22px; border: 1px solid var(--br-border);
+  background: rgba(10,14,28,.55); padding: 24px; backdrop-filter: blur(12px);
 }
 
-.panel h2{
-  margin: 0;
-  font-size: 18px;
-  letter-spacing: -0.01em;
-  color: rgba(230,242,255,.96);
+.tips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.tip-card {
+  border-radius: 20px; border: 1px solid rgba(230,242,255,.1);
+  background: rgba(10,14,28,.3); padding: 16px; display: flex; gap: 12px;
 }
+.tip-icon { font-size: 24px; }
 
-.panel p{
-  margin: 6px 0 0;
-  color: var(--br-muted);
-  font-size: 13px;
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.field { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--br-muted); }
+input, select {
+  padding: 12px; border-radius: 12px; border: 1px solid rgba(230,242,255,.15);
+  background: rgba(230,242,255,.05); color: #fff; outline: none;
 }
+input:focus { border-color: var(--br-cyan); }
 
-/* ---------- Tips (Home only) ---------- */
-.tips{
-  display:grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
+.btn { padding: 12px 20px; border-radius: 999px; font-weight: 700; cursor: pointer; border: 1px solid var(--br-border); }
+.btn-primary { background: linear-gradient(90deg, rgba(41,243,255,.2), rgba(255,176,0,.15)); color: #fff; box-shadow: var(--br-glow-cyan); }
+.btn-ghost { background: rgba(230,242,255,.05); color: var(--br-muted); }
 
-.tip-card{
-  border-radius: 20px;
-  border: 1px solid rgba(230,242,255,.12);
-  background: rgba(10,14,28,.35);
-  padding: 14px;
-  display:flex;
-  gap: 12px;
-  align-items:flex-start;
-}
+.alert { padding: 16px; border-radius: 12px; background: rgba(255,106,0,.1); border: 1px solid rgba(255,106,0,.2); margin-top: 16px; }
+.footer { text-align: center; padding: 40px; font-size: 12px; color: rgba(230,242,255,.4); }
 
-.tip-icon{
-  width: 38px;
-  height: 38px;
-  border-radius: 14px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  background: rgba(41,243,255,.10);
-  border: 1px solid rgba(41,243,255,.18);
-  box-shadow: var(--br-glow-cyan);
-  flex: 0 0 auto;
-  font-size: 18px;
-}
-
-.tip-card p{
-  margin: 6px 0 0;
-  color: var(--br-muted);
-}
-
-/* ---------- Form ---------- */
-.form-grid{
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.field{
-  display:flex;
-  flex-direction: column;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--br-muted);
-}
-
-input, select{
-  padding: 12px 12px;
-  border-radius: 16px;
-  border: 1px solid rgba(230,242,255,.16);
-  background: rgba(230,242,255,.06);
-  color: var(--br-ink);
-  outline: none;
-}
-
-input:focus, select:focus{
-  border-color: rgba(41,243,255,.30);
-  box-shadow: var(--br-glow-cyan);
-}
-
-.actions{
-  margin-top: 14px;
-  display:flex;
-  justify-content:flex-end;
-}
-
-/* ---------- Buttons ---------- */
-.btn{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  gap: 8px;
-  padding: 10px 14px;
-  border-radius: 999px;
-  font-weight: 700;
-  text-decoration: none;
-  border: 1px solid rgba(230,242,255,.14);
-  cursor: pointer;
-  user-select: none;
-  font-size: 14px;
-  background: transparent;
-}
-
-.btn-primary{
-  background: linear-gradient(90deg, rgba(41,243,255,.22), rgba(255,176,0,.18));
-  color: var(--br-ink);
-  border-color: rgba(41,243,255,.22);
-  box-shadow: var(--br-glow-cyan);
-}
-
-.btn-primary:hover{
-  filter: brightness(1.08);
-}
-
-.btn-ghost{
-  background: rgba(230,242,255,.06);
-  color: rgba(230,242,255,.90);
-  border-color: rgba(230,242,255,.14);
-}
-
-.btn-ghost:hover{
-  background: rgba(41,243,255,.10);
-  border-color: rgba(41,243,255,.18);
-}
-
-/* ---------- Footer ---------- */
-.footer{
-  margin-top: 8px;
-  display:flex;
-  justify-content:center;
-  gap: 10px;
-  color: rgba(230,242,255,.55);
-  font-size: 12px;
-  padding: 10px 0 0;
-}
-
-.dot{ opacity: .6; }
-
-/* ---------- Responsive ---------- */
-@media (max-width: 980px){
-  .hero-inner{
-    grid-template-columns: 1fr;
-  }
-  .hero-title{
-    font-size: 44px;
-  }
-  .tips{
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 720px){
-  .form-grid{
-    grid-template-columns: 1fr;
-  }
-  .topbar-actions{
-    display:none;
-  }
-  .hero-title{
-    font-size: 38px;
-  }
+@media (max-width: 900px) {
+  .topbar-inner { grid-template-columns: 1fr; gap: 15px; }
+  .topbar-left, .topbar-center, .topbar-right { justify-content: center; }
+  .hero-inner, .tips, .form-grid { grid-template-columns: 1fr; }
 }
 </style>
