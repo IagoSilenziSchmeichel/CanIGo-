@@ -7,7 +7,7 @@ const props = defineProps({
   searchQuery: { type: [String, Object], default: '' }
 })
 
-const baseUrl = import.meta.env.VITE_APP_BACKEND_BASE_URL
+const baseUrl = import.meta.env.VITE_API_URL
 const endpoint = `${baseUrl}/gegenstaende`
 
 /* ---------- Suche ---------- */

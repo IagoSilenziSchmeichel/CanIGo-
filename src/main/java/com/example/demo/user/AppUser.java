@@ -3,7 +3,10 @@ package com.example.demo.user;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "app_user", uniqueConstraints = @UniqueConstraint(columnNames = "email"))
+@Table(
+        name = "app_user",
+        uniqueConstraints = @UniqueConstraint(columnNames = "email")
+)
 public class AppUser {
 
     @Id
@@ -13,7 +16,7 @@ public class AppUser {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true, length = 320)
     private String email;
 
     @Column(nullable = false)

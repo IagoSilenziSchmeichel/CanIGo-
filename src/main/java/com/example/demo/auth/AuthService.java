@@ -1,5 +1,6 @@
 package com.example.demo.auth;
 
+import com.example.demo.security.JwtService;
 import com.example.demo.user.AppUser;
 import com.example.demo.user.AppUserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -10,39 +11,64 @@ public class AuthService {
 
     private final AppUserRepository users;
     private final PasswordEncoder encoder;
-    private final com.example.demo.security.JwtService jwt;
+    private final JwtService jwt;
 
-    public AuthService(AppUserRepository users, PasswordEncoder encoder, com.example.demo.security.JwtService jwt) {
+    public AuthService(AppUserRepository users, PasswordEncoder encoder, JwtService jwt) {
         this.users = users;
         this.encoder = encoder;
         this.jwt = jwt;
     }
 
-    public String register(String email, String password) {
-        String normEmail = email.trim().toLowerCase();
+    public AuthDtos.AuthResponse register(RegisterRequest req) {
+        String email = normalizeEmail(req.getEmail());
+        String password = req.getPassword();
+        String name = normalizeName(req.getName());
 
-        if (users.findByEmailIgnoreCase(normEmail).isPresent()) {
-            throw new RuntimeException("Email existiert schon");
+        if (email == null || email.isBlank()) throw new IllegalArgumentException("Email must not be empty");
+        if (password == null || password.isBlank()) throw new IllegalArgumentException("Password must not be empty");
+        if (name == null || name.isBlank()) throw new IllegalArgumentException("Name must not be empty");
+
+        if (users.existsByEmail(email)) {
+            throw new IllegalArgumentException("Email already in use");
         }
 
         AppUser u = new AppUser();
-        u.setEmail(normEmail);
+        u.setEmail(email);
+        u.setName(name);
         u.setPasswordHash(encoder.encode(password));
+
         u = users.save(u);
 
-        // ✅ Token bekommt USER-ID (Long)
-        return jwt.createToken(u.getId());
+        String token = jwt.createToken(u.getId());
+        return new AuthDtos.AuthResponse(token, u.getId(), u.getEmail(), u.getName());
     }
 
-    public String login(String email, String password) {
-        AppUser u = users.findByEmailIgnoreCase(email.trim().toLowerCase())
-                .orElseThrow(() -> new RuntimeException("User nicht gefunden"));
+    public AuthDtos.AuthResponse login(LoginRequest req) {
+        String email = normalizeEmail(req.getEmail());
+        String password = req.getPassword();
 
-        if (!encoder.matches(password, u.getPasswordHash())) {
-            throw new RuntimeException("Passwort falsch");
+        if (email == null || email.isBlank() || password == null || password.isBlank()) {
+            throw new IllegalArgumentException("Invalid credentials");
         }
 
-        // ✅ Token bekommt USER-ID (Long)
-        return jwt.createToken(u.getId());
+        AppUser u = users.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid credentials"));
+
+        if (!encoder.matches(password, u.getPasswordHash())) {
+            throw new IllegalArgumentException("Invalid credentials");
+        }
+
+        String token = jwt.createToken(u.getId());
+        return new AuthDtos.AuthResponse(token, u.getId(), u.getEmail(), u.getName());
+    }
+
+    private String normalizeEmail(String email) {
+        if (email == null) return null;
+        return email.trim().toLowerCase();
+    }
+
+    private String normalizeName(String name) {
+        if (name == null) return null;
+        return name.trim();
     }
 }

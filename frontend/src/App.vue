@@ -6,21 +6,20 @@ import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 const route = useRoute()
 const router = useRouter()
 
-/* ---------------- Auth (OHNE Okta) ----------------
-   Wir nehmen hier als einfache Lösung:
-   "eingeloggt" = es gibt einen Token in localStorage.
-   -> wenn du später Cookies/Session nutzt, passt du refreshAuth() an.
---------------------------------------------------- */
+/*
+  Auth:
+  - Backend erwartet: Authorization: Bearer <token>
+  - Wir speichern den Token unter localStorage key "token"
+*/
+const TOKEN_KEY = 'token'
 const isLoggedIn = ref(false)
 
-function refreshAuth() {
-  // anpassen, falls du später andere Keys nutzt
-  const token =
-      localStorage.getItem('auth_token') ||
-      localStorage.getItem('token') ||
-      localStorage.getItem('access_token')
+function getToken() {
+  return localStorage.getItem(TOKEN_KEY)
+}
 
-  isLoggedIn.value = !!token
+function refreshAuth() {
+  isLoggedIn.value = !!getToken()
 }
 
 function login() {
@@ -28,25 +27,20 @@ function login() {
 }
 
 function logout() {
-  // alles weg, was Login speichern könnte
-  localStorage.removeItem('auth_token')
-  localStorage.removeItem('token')
-  localStorage.removeItem('access_token')
+  localStorage.removeItem(TOKEN_KEY)
   localStorage.removeItem('user')
   refreshAuth()
-
-  // optional: zurück nach Hause
   router.push('/')
 }
 
-/* ---------------- Search ---------------- */
+/* Search */
 const searchQuery = ref('')
 
 function onSearchEnter() {
   router.push({ path: '/items', query: { q: searchQuery.value } })
 }
 
-/* ---------------- State ---------------- */
+/* State */
 const liste = ref([])
 const fehler = ref('')
 
@@ -59,11 +53,13 @@ const wegwerfAm = ref('')
 const kaufpreis = ref('')
 const wunschVerkaufspreis = ref('')
 
-/* ---------------- API Base ---------------- */
-const baseUrl = import.meta.env.VITE_APP_BACKEND_BASE_URL
+/* API Base
+   .env: VITE_API_URL=http://localhost:8080
+*/
+const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8080').replace(/\/$/, '')
 const endpoint = `${baseUrl}/gegenstaende`
 
-/* ---------------- Helpers ---------------- */
+/* Helpers */
 function formatMoney(v) {
   if (v === null || v === undefined || v === '') return '—'
   const n = Number(v)
@@ -80,33 +76,35 @@ function formatDateTime(v) {
   return String(v).replace('T', ' ').slice(0, 16)
 }
 
-/* ---------------- (Optional) Auth Header ----------------
-   Falls dein Backend später "Authorization: Bearer <token>" erwartet,
-   lass das hier drin. Wenn nicht, bleibt token einfach leer.
----------------------------------------------------------- */
 function authHeaders() {
-  const token =
-      localStorage.getItem('auth_token') ||
-      localStorage.getItem('token') ||
-      localStorage.getItem('access_token')
+  const token = getToken()
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
-/* ---------------- Data ---------------- */
+function handleAuthErrorIfNeeded(res) {
+  if (res.status === 401 || res.status === 403) {
+    logout()
+    throw new Error('Nicht eingeloggt oder Token abgelaufen.')
+  }
+}
+
+/* Data */
 async function ladeDaten() {
   fehler.value = ''
-  try {
-    const res = await fetch(endpoint, {
-      headers: {
-        ...authHeaders()
-      }
-    })
 
+  // Wenn nicht eingeloggt: keine geschützten Calls machen
+  if (!isLoggedIn.value) {
+    liste.value = []
+    return
+  }
+
+  try {
+    const res = await fetch(endpoint, { headers: { ...authHeaders() } })
     if (!res.ok) {
+      handleAuthErrorIfNeeded(res)
       const text = await res.text().catch(() => '')
       throw new Error(`GET fehlgeschlagen: HTTP ${res.status}${text ? ` – ${text}` : ''}`)
     }
-
     liste.value = await res.json()
   } catch (e) {
     fehler.value = String(e)
@@ -115,6 +113,11 @@ async function ladeDaten() {
 
 async function speichern() {
   fehler.value = ''
+
+  if (!isLoggedIn.value) {
+    fehler.value = 'Bitte zuerst einloggen.'
+    return
+  }
 
   if (!name.value.trim() || !ort.value.trim()) {
     fehler.value = 'Bitte Name und Ort ausfüllen.'
@@ -143,6 +146,7 @@ async function speichern() {
     })
 
     if (!res.ok) {
+      handleAuthErrorIfNeeded(res)
       const text = await res.text().catch(() => '')
       throw new Error(`POST fehlgeschlagen: HTTP ${res.status}${text ? ` – ${text}` : ''}`)
     }
@@ -161,20 +165,25 @@ async function speichern() {
   }
 }
 
-/* ---------------- Notifications ---------------- */
+/* Notifications */
 const notifications = ref([])
 const notifError = ref('')
 
 async function ladeNotifications() {
   notifError.value = ''
+
+  if (!isLoggedIn.value) {
+    notifications.value = []
+    return
+  }
+
   try {
     const res = await fetch(`${baseUrl}/notifications?unseenOnly=true`, {
-      headers: {
-        ...authHeaders()
-      }
+      headers: { ...authHeaders() }
     })
 
     if (!res.ok) {
+      handleAuthErrorIfNeeded(res)
       const text = await res.text().catch(() => '')
       throw new Error(`Notifications GET fehlgeschlagen: HTTP ${res.status}${text ? ` – ${text}` : ''}`)
     }
@@ -187,15 +196,20 @@ async function ladeNotifications() {
 
 async function markNotifSeen(id) {
   notifError.value = ''
+
+  if (!isLoggedIn.value) {
+    notifError.value = 'Bitte zuerst einloggen.'
+    return
+  }
+
   try {
     const res = await fetch(`${baseUrl}/notifications/${id}/seen`, {
       method: 'PUT',
-      headers: {
-        ...authHeaders()
-      }
+      headers: { ...authHeaders() }
     })
 
     if (!res.ok) {
+      handleAuthErrorIfNeeded(res)
       const text = await res.text().catch(() => '')
       throw new Error(`seen PUT fehlgeschlagen: HTTP ${res.status}${text ? ` – ${text}` : ''}`)
     }
@@ -206,7 +220,7 @@ async function markNotifSeen(id) {
   }
 }
 
-/* ---------------- Home-only helper ---------------- */
+/* Home-only helper */
 function goToAddAndFocus() {
   if (route.path !== '/') router.push('/')
   setTimeout(() => {
@@ -217,9 +231,11 @@ function goToAddAndFocus() {
 let notifInterval = null
 
 function onStorageChange(e) {
-  // falls Token/Login in einem anderen Tab geändert wird
-  if (['auth_token', 'token', 'access_token', 'user'].includes(e.key)) {
+  if ([TOKEN_KEY, 'user'].includes(e.key)) {
     refreshAuth()
+    // wenn Login/Logout in anderem Tab: Daten neu ziehen oder leeren
+    ladeDaten()
+    ladeNotifications()
   }
 }
 
@@ -229,6 +245,7 @@ onMounted(async () => {
 
   await ladeDaten()
   await ladeNotifications()
+
   notifInterval = setInterval(ladeNotifications, 30000)
 })
 
@@ -267,7 +284,7 @@ onBeforeUnmount(() => {
             Erinnerungen ({{ notifications.length }})
           </RouterLink>
 
-          <!-- Login / Logout ohne Okta -->
+          <!-- Login / Logout -->
           <button
               v-if="!isLoggedIn"
               class="navlink as-btn"
@@ -300,7 +317,7 @@ onBeforeUnmount(() => {
       </div>
     </header>
 
-    <!-- HOME: Hero + Tipps + Add bleibt auf / -->
+    <!-- HOME -->
     <template v-if="route.path === '/'">
       <!-- Hero -->
       <section class="hero">
@@ -318,7 +335,12 @@ onBeforeUnmount(() => {
               <RouterLink class="btn btn-ghost" to="/items">Liste ansehen ({{ liste.length }})</RouterLink>
             </div>
 
-            <div v-if="fehler" class="alert">
+            <div v-if="!isLoggedIn" class="alert">
+              <strong>Hinweis:</strong>
+              <span>Bitte einloggen, damit die Liste und Erinnerungen geladen werden können.</span>
+            </div>
+
+            <div v-else-if="fehler" class="alert">
               <strong>Fehler:</strong>
               <span>{{ fehler }}</span>
             </div>
@@ -348,7 +370,7 @@ onBeforeUnmount(() => {
 
       <!-- Content -->
       <main class="content">
-        <!-- TIPPS / "Startseite Content" -->
+        <!-- TIPPS -->
         <section class="panel">
           <div class="panel-head">
             <h2>Tipps: Was du mit alten Gegenständen tun kannst</h2>
@@ -382,7 +404,7 @@ onBeforeUnmount(() => {
           </div>
         </section>
 
-        <!-- FORM (bleibt auf Home) -->
+        <!-- FORM -->
         <section id="add" class="panel">
           <div class="panel-head">
             <h2>Neuen Gegenstand hinzufügen</h2>
@@ -442,7 +464,7 @@ onBeforeUnmount(() => {
           </div>
 
           <div class="actions">
-            <button class="btn btn-primary" @click="speichern">Hinzufügen</button>
+            <button class="btn btn-primary" type="button" @click="speichern">Hinzufügen</button>
           </div>
         </section>
 
@@ -454,7 +476,7 @@ onBeforeUnmount(() => {
       </main>
     </template>
 
-    <!-- ROUTED PAGES (Items / Notifications / Login etc.) -->
+    <!-- ROUTED PAGES -->
     <template v-else>
       <main class="content">
         <RouterView
