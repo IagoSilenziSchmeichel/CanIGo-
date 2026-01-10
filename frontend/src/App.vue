@@ -3,20 +3,24 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 
+// Nutze zentrale API (setzt Authorization Header automatisch)
+import {
+  getToken,
+  clearToken,
+  getGegenstaende,
+  createGegenstand,
+  apiFetch
+} from '@/api' // falls dein Pfad anders ist: '../api' oder '@/api.js'
+
 const route = useRoute()
 const router = useRouter()
 
 /*
   Auth:
   - Backend erwartet: Authorization: Bearer <token>
-  - Wir speichern den Token unter localStorage key "token"
+  - Token wird in src/api.js unter localStorage key "token" verwaltet
 */
-const TOKEN_KEY = 'token'
 const isLoggedIn = ref(false)
-
-function getToken() {
-  return localStorage.getItem(TOKEN_KEY)
-}
 
 function refreshAuth() {
   isLoggedIn.value = !!getToken()
@@ -27,8 +31,7 @@ function login() {
 }
 
 function logout() {
-  localStorage.removeItem(TOKEN_KEY)
-  localStorage.removeItem('user')
+  clearToken()
   refreshAuth()
   router.push('/')
 }
@@ -53,12 +56,6 @@ const wegwerfAm = ref('')
 const kaufpreis = ref('')
 const wunschVerkaufspreis = ref('')
 
-/* API Base
-   .env: VITE_API_URL=http://localhost:8080
-*/
-const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8080').replace(/\/$/, '')
-const endpoint = `${baseUrl}/gegenstaende`
-
 /* Helpers */
 function formatMoney(v) {
   if (v === null || v === undefined || v === '') return '—'
@@ -76,18 +73,6 @@ function formatDateTime(v) {
   return String(v).replace('T', ' ').slice(0, 16)
 }
 
-function authHeaders() {
-  const token = getToken()
-  return token ? { Authorization: `Bearer ${token}` } : {}
-}
-
-function handleAuthErrorIfNeeded(res) {
-  if (res.status === 401 || res.status === 403) {
-    logout()
-    throw new Error('Nicht eingeloggt oder Token abgelaufen.')
-  }
-}
-
 /* Data */
 async function ladeDaten() {
   fehler.value = ''
@@ -99,15 +84,17 @@ async function ladeDaten() {
   }
 
   try {
-    const res = await fetch(endpoint, { headers: { ...authHeaders() } })
-    if (!res.ok) {
-      handleAuthErrorIfNeeded(res)
-      const text = await res.text().catch(() => '')
-      throw new Error(`GET fehlgeschlagen: HTTP ${res.status}${text ? ` – ${text}` : ''}`)
-    }
-    liste.value = await res.json()
+    // über api.js -> Authorization automatisch
+    liste.value = await getGegenstaende()
   } catch (e) {
-    fehler.value = String(e)
+    // optional: wenn Backend 401/403 wirft -> ausloggen
+    const msg = String(e?.message || e)
+    if (/401|403|Nicht eingeloggt|Token/i.test(msg)) {
+      logout()
+      fehler.value = 'Nicht eingeloggt oder Token abgelaufen.'
+      return
+    }
+    fehler.value = msg
   }
 }
 
@@ -136,21 +123,10 @@ async function speichern() {
   }
 
   try {
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...authHeaders()
-      },
-      body: JSON.stringify(neuerGegenstand)
-    })
+    // über api.js -> Authorization automatisch
+    await createGegenstand(neuerGegenstand)
 
-    if (!res.ok) {
-      handleAuthErrorIfNeeded(res)
-      const text = await res.text().catch(() => '')
-      throw new Error(`POST fehlgeschlagen: HTTP ${res.status}${text ? ` – ${text}` : ''}`)
-    }
-
+    // Form reset
     name.value = ''
     ort.value = ''
     lastUsed.value = ''
@@ -161,7 +137,13 @@ async function speichern() {
     await ladeDaten()
     await ladeNotifications()
   } catch (e) {
-    fehler.value = String(e)
+    const msg = String(e?.message || e)
+    if (/401|403|Nicht eingeloggt|Token/i.test(msg)) {
+      logout()
+      fehler.value = 'Nicht eingeloggt oder Token abgelaufen.'
+      return
+    }
+    fehler.value = msg
   }
 }
 
@@ -178,19 +160,16 @@ async function ladeNotifications() {
   }
 
   try {
-    const res = await fetch(`${baseUrl}/notifications?unseenOnly=true`, {
-      headers: { ...authHeaders() }
-    })
-
-    if (!res.ok) {
-      handleAuthErrorIfNeeded(res)
-      const text = await res.text().catch(() => '')
-      throw new Error(`Notifications GET fehlgeschlagen: HTTP ${res.status}${text ? ` – ${text}` : ''}`)
-    }
-
-    notifications.value = await res.json()
+    //  Kein baseUrl / fetch mehr, sondern apiFetch
+    notifications.value = await apiFetch('/notifications?unseenOnly=true', { method: 'GET' })
   } catch (e) {
-    notifError.value = String(e)
+    const msg = String(e?.message || e)
+    if (/401|403|Nicht eingeloggt|Token/i.test(msg)) {
+      logout()
+      notifError.value = 'Nicht eingeloggt oder Token abgelaufen.'
+      return
+    }
+    notifError.value = msg
   }
 }
 
@@ -203,20 +182,16 @@ async function markNotifSeen(id) {
   }
 
   try {
-    const res = await fetch(`${baseUrl}/notifications/${id}/seen`, {
-      method: 'PUT',
-      headers: { ...authHeaders() }
-    })
-
-    if (!res.ok) {
-      handleAuthErrorIfNeeded(res)
-      const text = await res.text().catch(() => '')
-      throw new Error(`seen PUT fehlgeschlagen: HTTP ${res.status}${text ? ` – ${text}` : ''}`)
-    }
-
+    await apiFetch(`/notifications/${id}/seen`, { method: 'PUT' })
     await ladeNotifications()
   } catch (e) {
-    notifError.value = String(e)
+    const msg = String(e?.message || e)
+    if (/401|403|Nicht eingeloggt|Token/i.test(msg)) {
+      logout()
+      notifError.value = 'Nicht eingeloggt oder Token abgelaufen.'
+      return
+    }
+    notifError.value = msg
   }
 }
 
@@ -231,7 +206,7 @@ function goToAddAndFocus() {
 let notifInterval = null
 
 function onStorageChange(e) {
-  if ([TOKEN_KEY, 'user'].includes(e.key)) {
+  if (['token', 'user'].includes(e.key)) {
     refreshAuth()
     // wenn Login/Logout in anderem Tab: Daten neu ziehen oder leeren
     ladeDaten()
@@ -295,12 +270,7 @@ onBeforeUnmount(() => {
             Login
           </button>
 
-          <button
-              v-else
-              class="navlink as-btn"
-              type="button"
-              @click="logout"
-          >
+          <button v-else class="navlink as-btn" type="button" @click="logout">
             Logout
           </button>
 
@@ -459,7 +429,12 @@ onBeforeUnmount(() => {
 
             <label class="field">
               <span>Wunsch-Verkaufspreis (€)</span>
-              <input v-model="wunschVerkaufspreis" type="number" step="0.01" placeholder="z.B. 25.00" />
+              <input
+                  v-model="wunschVerkaufspreis"
+                  type="number"
+                  step="0.01"
+                  placeholder="z.B. 25.00"
+              />
             </label>
           </div>
 

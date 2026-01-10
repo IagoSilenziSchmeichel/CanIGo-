@@ -1,14 +1,12 @@
 <script setup>
 import { computed, reactive, ref, unref } from 'vue'
+import { apiFetch } from '../api' // ✅ zentraler Wrapper (setzt Authorization automatisch)
 
 const props = defineProps({
   liste: { type: Array, default: () => [] },
   ladeDaten: Function,
   searchQuery: { type: [String, Object], default: '' }
 })
-
-const baseUrl = import.meta.env.VITE_API_URL
-const endpoint = `${baseUrl}/gegenstaende`
 
 /* ---------- Suche ---------- */
 const q = computed(() => String(unref(props.searchQuery) ?? '').trim().toLowerCase())
@@ -74,9 +72,10 @@ function closeEdit() {
   showEdit.value = false
 }
 
-/* ---------- API Calls ---------- */
+/* ---------- API Calls (MIT TOKEN über apiFetch!) ---------- */
 async function saveEdit() {
   error.value = ''
+
   if (!editForm.name.trim() || !editForm.ort.trim()) {
     error.value = 'Bitte Name und Ort ausfüllen.'
     return
@@ -89,21 +88,24 @@ async function saveEdit() {
     kategorie: editForm.kategorie,
     lastUsed: editForm.lastUsed ? editForm.lastUsed : null,
     wegwerfAm: editForm.wegwerfAm ? editForm.wegwerfAm : null,
-    kaufpreis: editForm.kaufpreis !== '' ? Number(editForm.kaufpreis) : null,
-    wunschVerkaufspreis: editForm.wunschVerkaufspreis !== '' ? Number(editForm.wunschVerkaufspreis) : null
+    kaufpreis:
+        editForm.kaufpreis !== '' && editForm.kaufpreis !== null && editForm.kaufpreis !== undefined
+            ? Number(editForm.kaufpreis)
+            : null,
+    wunschVerkaufspreis:
+        editForm.wunschVerkaufspreis !== '' &&
+        editForm.wunschVerkaufspreis !== null &&
+        editForm.wunschVerkaufspreis !== undefined
+            ? Number(editForm.wunschVerkaufspreis)
+            : null
   }
 
   busy.value = true
   try {
-    const res = await fetch(`${endpoint}/${editForm.id}`, {
+    await apiFetch(`/gegenstaende/${editForm.id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     })
-    if (!res.ok) {
-      const text = await res.text().catch(() => '')
-      throw new Error(`PUT fehlgeschlagen: HTTP ${res.status}${text ? ` – ${text}` : ''}`)
-    }
 
     closeEdit()
     await props.ladeDaten?.()
@@ -116,16 +118,13 @@ async function saveEdit() {
 
 async function deleteItem(item) {
   error.value = ''
+
   const ok = window.confirm(`Wirklich löschen?\n\n${item.name} (#${item.id})`)
   if (!ok) return
 
   busy.value = true
   try {
-    const res = await fetch(`${endpoint}/${item.id}`, { method: 'DELETE' })
-    if (!res.ok) {
-      const text = await res.text().catch(() => '')
-      throw new Error(`DELETE fehlgeschlagen: HTTP ${res.status}${text ? ` – ${text}` : ''}`)
-    }
+    await apiFetch(`/gegenstaende/${item.id}`, { method: 'DELETE' })
     await props.ladeDaten?.()
   } catch (e) {
     error.value = String(e?.message || e)

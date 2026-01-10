@@ -1,11 +1,10 @@
 <script setup>
 import { ref } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
+import { register } from '../api' // ✅ nutzt api.js (speichert token automatisch)
 
 const route = useRoute()
 const router = useRouter()
-
-const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8080').replace(/\/$/, '')
 
 const name = ref('')
 const email = ref('')
@@ -36,39 +35,8 @@ async function doRegister() {
 
   loading.value = true
   try {
-    const res = await fetch(`${baseUrl}/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: n,
-        email: e,
-        password: password.value
-      })
-    })
+    await register(n, e, password.value)
 
-    if (!res.ok) {
-      const text = await res.text().catch(() => '')
-      throw new Error(`Registrierung fehlgeschlagen: HTTP ${res.status}${text ? ` – ${text}` : ''}`)
-    }
-
-    const data = await res.json()
-
-    if (!data?.token) {
-      throw new Error('Registrierung fehlgeschlagen: kein Token in der Response.')
-    }
-
-    // Token + User speichern (wie LoginPage)
-    localStorage.setItem('token', data.token)
-    localStorage.setItem(
-        'user',
-        JSON.stringify({
-          userId: data.userId,
-          email: data.email,
-          name: data.name
-        })
-    )
-
-    // zurück zur gewünschten Seite oder Start
     const from = route.query.from || '/'
     router.replace(from)
   } catch (e) {
