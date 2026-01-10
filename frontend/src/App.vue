@@ -341,16 +341,9 @@ onBeforeUnmount(() => {
           </div>
 
           <div class="form-grid">
-            <label class="field">
-              <span>Name*</span>
-              <input v-model="name" placeholder="z.B. Hammer" />
-            </label>
-
-            <label class="field">
-              <span>Ort*</span>
-              <input v-model="ort" placeholder="z.B. Werkbank" />
-            </label>
-
+            <!-- ... deine Inputs bleiben alle gleich ... -->
+            <label class="field"><span>Name*</span><input v-model="name" placeholder="z.B. Hammer" /></label>
+            <label class="field"><span>Ort*</span><input v-model="ort" placeholder="z.B. Werkbank" /></label>
             <label class="field">
               <span>Wichtigkeit</span>
               <select v-model="wichtigkeit">
@@ -359,7 +352,6 @@ onBeforeUnmount(() => {
                 <option value="UNWICHTIG">Unwichtig</option>
               </select>
             </label>
-
             <label class="field">
               <span>Kategorie</span>
               <select v-model="kategorie">
@@ -370,30 +362,21 @@ onBeforeUnmount(() => {
                 <option value="SONSTIGES">Sonstiges</option>
               </select>
             </label>
+            <label class="field"><span>Zuletzt benutzt</span><input v-model="lastUsed" type="date" /></label>
+            <label class="field"><span>Wegwerf-Datum</span><input v-model="wegwerfAm" type="date" /></label>
+            <label class="field"><span>Kaufpreis (€)</span><input v-model="kaufpreis" type="number" step="0.01" /></label>
+            <label class="field"><span>Wunsch-Verkaufspreis (€)</span><input v-model="wunschVerkaufspreis" type="number" step="0.01" /></label>
+          </div>
 
-            <label class="field">
-              <span>Zuletzt benutzt</span>
-              <input v-model="lastUsed" type="date" />
-            </label>
-
-            <label class="field">
-              <span>Wegwerf-Datum</span>
-              <input v-model="wegwerfAm" type="date" />
-            </label>
-
-            <label class="field">
-              <span>Kaufpreis (€)</span>
-              <input v-model="kaufpreis" type="number" step="0.01" placeholder="z.B. 49.99" />
-            </label>
-
-            <label class="field">
-              <span>Wunsch-Verkaufspreis (€)</span>
-              <input v-model="wunschVerkaufspreis" type="number" step="0.01" placeholder="z.B. 25.00" />
-            </label>
+          <!-- NEU: Fehlermeldung direkt im Formular anzeigen -->
+          <div v-if="fehler" class="alert form-alert">
+            <strong>Hinweis:</strong> {{ fehler }}
           </div>
 
           <div class="actions">
-            <button class="btn btn-primary" type="button" @click="speichern">Hinzufügen</button>
+            <button class="btn btn-primary" type="button" @click="speichern">
+              Hinzufügen
+            </button>
           </div>
         </section>
 
