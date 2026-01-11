@@ -10,10 +10,42 @@ const props = defineProps({
 
 /* ---------- Suche ---------- */
 const q = computed(() => String(unref(props.searchQuery) ?? '').trim().toLowerCase())
+
 const filtered = computed(() => {
   if (!q.value) return props.liste
   return props.liste.filter(g => String(g?.name ?? '').toLowerCase().includes(q.value))
 })
+
+/* ---------- Highlight Helpers ---------- */
+function matchesQuery(item) {
+  if (!q.value) return false
+  const name = String(item?.name ?? '').toLowerCase()
+  return name.includes(q.value)
+}
+
+function escapeHtml(s) {
+  return String(s)
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;')
+}
+
+function highlightName(name) {
+  const raw = String(name ?? '')
+  if (!q.value) return escapeHtml(raw)
+
+  const lower = raw.toLowerCase()
+  const idx = lower.indexOf(q.value)
+  if (idx === -1) return escapeHtml(raw)
+
+  const before = escapeHtml(raw.slice(0, idx))
+  const mid = escapeHtml(raw.slice(idx, idx + q.value.length))
+  const after = escapeHtml(raw.slice(idx + q.value.length))
+
+  return `${before}<mark class="hl">${mid}</mark>${after}`
+}
 
 /* ---------- Anzeige Helpers ---------- */
 function moneyOrDash(v) {
@@ -50,12 +82,6 @@ const CATEGORY_ORDER = [
   { key: 'SONSTIGES', label: '🧩 Sonstiges' }
 ]
 
-/**
- * Baut pro Kategorie 3 Gruppen:
- * - WICHTIG
- * - MITTEL
- * - UNWICHTIG
- */
 const categorized = computed(() => {
   const src = [...filtered.value]
 
@@ -71,7 +97,6 @@ const categorized = computed(() => {
     })
   }
 
-  // Falls Backend mal eine "unbekannte" Kategorie liefert:
   const ensureCategory = (key) => {
     if (!byCategory.has(key)) {
       byCategory.set(key, {
@@ -91,18 +116,16 @@ const categorized = computed(() => {
     bucket.groups[groupKey].push(item)
   }
 
-  // Sortierung innerhalb jeder Wichtigkeitsgruppe
+  // Sortierung innerhalb jeder Gruppe (bei dir ist das ok, auch wenn redundant)
   for (const bucket of byCategory.values()) {
     bucket.groups.WICHTIG.sort(sortByWichtigkeitThenName)
     bucket.groups.MITTEL.sort(sortByWichtigkeitThenName)
     bucket.groups.UNWICHTIG.sort(sortByWichtigkeitThenName)
   }
 
-  // In gewünschter Reihenfolge ausgeben
   const ordered = []
   for (const cat of CATEGORY_ORDER) ordered.push(byCategory.get(cat.key))
 
-  // Unbekannte Kategorien hinten anhängen
   for (const [key, value] of byCategory.entries()) {
     if (!CATEGORY_ORDER.some(c => c.key === key)) ordered.push(value)
   }
@@ -248,12 +271,17 @@ const groupTitle = (key) => {
             <div v-if="cat.groups[prio].length === 0" class="muted">Keine Gegenstände.</div>
 
             <ul v-else class="grid">
-              <li v-for="g in cat.groups[prio]" :key="g.id" class="card">
+              <li
+                  v-for="g in cat.groups[prio]"
+                  :key="g.id"
+                  class="card"
+                  :class="{ 'card-hit': matchesQuery(g) }"
+              >
                 <div class="card-top">
                   <div class="card-title">
-                    <strong>{{ g.name }}</strong>
+                    <!-- ✅ Name mit Highlight -->
+                    <strong v-html="highlightName(g.name)"></strong>
 
-                    <!-- ✅ Chips mit Abstand -->
                     <span class="chips">
                       <span class="chip" :class="`prio-${String(g.wichtigkeit||'').toLowerCase()}`">
                         {{ g.wichtigkeit }}
@@ -403,7 +431,7 @@ const groupTitle = (key) => {
 /* ✅ Chips: Abstand + Zeilenumbruch */
 .chips{
   display: inline-flex;
-  gap: 8px;            /* wichtig: damit NICHT "WICHTIGDOKUMENTE" entsteht */
+  gap: 8px;
   flex-wrap: wrap;
   align-items: center;
   margin-left: 10px;
@@ -428,6 +456,24 @@ const groupTitle = (key) => {
 .chip.prio-wichtig{ border-color: rgba(255,176,0,.22); background: rgba(255,176,0,.10); }
 .chip.prio-mittel{ border-color: rgba(41,243,255,.18); background: rgba(41,243,255,.08); }
 .chip.prio-unwichtig{ border-color: rgba(255,61,174,.18); background: rgba(255,61,174,.08); }
+
+/* ✅ Highlight: markierter Text */
+mark.hl{
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(255, 240, 170, .18);
+  border: 1px solid rgba(255, 240, 170, .26);
+  color: rgba(230,242,255,.98);
+}
+
+/* ✅ Highlight: ganze Card glow */
+.card-hit{
+  border-color: rgba(255, 240, 170, .35) !important;
+  background: rgba(255, 240, 170, .06) !important;
+  box-shadow:
+      0 0 0 1px rgba(255, 240, 170, .20),
+      0 0 26px rgba(255, 240, 170, .12);
+}
 
 .card-actions{
   display:flex;
