@@ -26,6 +26,7 @@ function goLogin() {
 
 function logout() {
   clearToken()
+  // clearToken feuert auth-changed, aber wir refreshen hier trotzdem direkt fürs UI-Feedback
   refreshAuth()
   router.push('/')
 }
@@ -100,6 +101,7 @@ async function speichern() {
     fehler.value = 'Bitte Name und Ort ausfüllen.'
     return
   }
+
   const payload = {
     name: name.value.trim(),
     ort: ort.value.trim(),
@@ -110,14 +112,17 @@ async function speichern() {
     kaufpreis: kaufpreis.value !== '' ? Number(kaufpreis.value) : null,
     wunschVerkaufspreis: wunschVerkaufspreis.value !== '' ? Number(wunschVerkaufspreis.value) : null
   }
+
   try {
     await createGegenstand(payload)
+
     name.value = ''
     ort.value = ''
     lastUsed.value = ''
     wegwerfAm.value = ''
     kaufpreis.value = ''
     wunschVerkaufspreis.value = ''
+
     await ladeDaten()
     await ladeNotifications()
   } catch (e) {
@@ -168,6 +173,7 @@ function goToAddAndFocus() {
 let notifInterval = null
 
 function onStorageChange(e) {
+  // nur andere Tabs
   if (['token', 'user'].includes(e.key)) {
     refreshAuth()
     ladeDaten()
@@ -175,17 +181,28 @@ function onStorageChange(e) {
   }
 }
 
+// ✅ wichtig: gleicher Tab (Login/Register) -> sofort reagieren
+function onAuthChanged() {
+  refreshAuth()
+  ladeDaten()
+  ladeNotifications()
+}
+
 onMounted(async () => {
   refreshAuth()
   window.addEventListener('storage', onStorageChange)
+  window.addEventListener('auth-changed', onAuthChanged)
+
   await ladeDaten()
   await ladeNotifications()
+
   notifInterval = setInterval(ladeNotifications, 30000)
 })
 
 onBeforeUnmount(() => {
   if (notifInterval) clearInterval(notifInterval)
   window.removeEventListener('storage', onStorageChange)
+  window.removeEventListener('auth-changed', onAuthChanged)
 })
 </script>
 
@@ -208,7 +225,9 @@ onBeforeUnmount(() => {
         <nav class="topbar-center">
           <RouterLink to="/" class="navlink" :class="{ active: route.path === '/' }">Home</RouterLink>
           <RouterLink to="/items" class="navlink" :class="{ active: route.path === '/items' }">Gegenstände</RouterLink>
-          <RouterLink to="/notifications" class="navlink" :class="{ active: route.path === '/notifications' }">Erinnerungen ({{ notifications.length }})</RouterLink>
+          <RouterLink to="/notifications" class="navlink" :class="{ active: route.path === '/notifications' }">
+            Erinnerungen ({{ notifications.length }})
+          </RouterLink>
         </nav>
 
         <div class="topbar-right">
@@ -218,13 +237,14 @@ onBeforeUnmount(() => {
       </div>
     </header>
 
-    <!-- START HOME CONTENT -->
+    <!-- HOME -->
     <template v-if="route.path === '/'">
       <section class="hero">
         <div class="hero-inner">
           <div>
             <h1 class="hero-title">Can I Go?</h1>
             <p class="hero-sub">Speichere und ordne deine Gegenstände – und bekomme Erinnerungen, wenn etwas fällig ist.</p>
+
             <div class="hero-cta">
               <button class="btn btn-primary" type="button" @click="goToAddAndFocus">Neuen Gegenstand anlegen</button>
               <RouterLink class="btn btn-ghost" to="/items">Liste ansehen ({{ liste.length }})</RouterLink>
@@ -249,6 +269,7 @@ onBeforeUnmount(() => {
             <h2>Tipps: Was du mit alten Gegenständen tun kannst</h2>
             <p>Kurze Ideen – schnell entscheiden, bevor du es wegwirfst.</p>
           </div>
+
           <div class="tips">
             <div class="tip-card"><div class="tip-icon">♻️</div><div><strong>Spenden</strong><p>Wenn’s noch funktioniert.</p></div></div>
             <div class="tip-card"><div class="tip-icon">💶</div><div><strong>Verkaufen</strong><p>Wunschpreis checken.</p></div></div>
@@ -265,6 +286,7 @@ onBeforeUnmount(() => {
           <div class="form-grid">
             <label class="field"><span>Name*</span><input v-model="name" placeholder="z.B. Hammer" /></label>
             <label class="field"><span>Ort*</span><input v-model="ort" placeholder="z.B. Werkbank" /></label>
+
             <label class="field">
               <span>Wichtigkeit</span>
               <select v-model="wichtigkeit">
@@ -273,6 +295,7 @@ onBeforeUnmount(() => {
                 <option value="UNWICHTIG">Unwichtig</option>
               </select>
             </label>
+
             <label class="field">
               <span>Kategorie</span>
               <select v-model="kategorie">
@@ -283,13 +306,13 @@ onBeforeUnmount(() => {
                 <option value="SONSTIGES">Sonstiges</option>
               </select>
             </label>
+
             <label class="field"><span>Zuletzt benutzt</span><input v-model="lastUsed" type="date" /></label>
             <label class="field"><span>Wegwerf-Datum</span><input v-model="wegwerfAm" type="date" /></label>
             <label class="field"><span>Kaufpreis (€)</span><input v-model="kaufpreis" type="number" step="0.01" /></label>
             <label class="field"><span>Wunschpreis (€)</span><input v-model="wunschVerkaufspreis" type="number" step="0.01" /></label>
           </div>
 
-          <!-- Fehler-Anzeige -->
           <div v-if="fehler" class="alert form-alert">
             <strong>Hinweis:</strong> {{ fehler }}
           </div>
@@ -305,7 +328,7 @@ onBeforeUnmount(() => {
       </main>
     </template>
 
-    <!-- PAGES VIEW (ITEMS/NOTIFS) -->
+    <!-- ROUTED PAGES -->
     <template v-else>
       <main class="content">
         <RouterView
@@ -320,6 +343,7 @@ onBeforeUnmount(() => {
             :ladeNotifications="ladeNotifications"
             :markNotifSeen="markNotifSeen"
         />
+
         <footer class="footer">
           <span>© {{ new Date().getFullYear() }} Can I Go? • Minimal UI</span>
         </footer>
@@ -363,7 +387,7 @@ onBeforeUnmount(() => {
   color: #fff; outline: none;
 }
 
-.topbar-center { display: flex; gap: 8px; }
+.topbar-center { display: flex; gap: 8px; justify-content: center; }
 .topbar-right { display: flex; justify-content: flex-end; }
 
 .navlink {

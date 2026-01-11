@@ -1,17 +1,25 @@
 // src/api.js
 
 const RAW_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
-export const BASE_URL = RAW_BASE_URL.replace(/\/$/, ""); // ✅ trailing slash entfernen
+export const BASE_URL = RAW_BASE_URL.replace(/\/$/, ""); // trailing slash entfernen
+
+// -------- Auth change notify --------
+function notifyAuthChanged() {
+    // wichtig: funktioniert im gleichen Tab (im Gegensatz zum storage-event)
+    window.dispatchEvent(new Event("auth-changed"));
+}
 
 // -------- Token Storage --------
 export function setToken(token) {
     if (!token) return;
     localStorage.setItem("token", token);
+    notifyAuthChanged();
 }
 
 export function clearToken() {
     localStorage.removeItem("token");
-    localStorage.removeItem("user"); // optional: falls du user speicherst
+    localStorage.removeItem("user"); // optional
+    notifyAuthChanged();
 }
 
 export function getToken() {
@@ -20,7 +28,6 @@ export function getToken() {
 
 // -------- Helpers --------
 function buildUrl(path) {
-    // erlaubt: "/gegenstaende" oder "gegenstaende"
     const p = String(path || "");
     if (!p) return BASE_URL;
     return `${BASE_URL}${p.startsWith("/") ? "" : "/"}${p}`;
@@ -33,7 +40,7 @@ async function readBodySafe(res) {
     try {
         return JSON.parse(text);
     } catch {
-        return text; // z.B. Plaintext Fehlermeldung
+        return text;
     }
 }
 
@@ -49,17 +56,14 @@ function extractErrorMessage(data, res) {
 export async function apiFetch(path, options = {}) {
     const token = getToken();
 
-    // Headers zusammenbauen
     const headers = {
         ...(options.headers || {}),
     };
 
-    // JSON automatisch setzen, wenn body vorhanden und Content-Type fehlt
     if (options.body != null && !headers["Content-Type"]) {
         headers["Content-Type"] = "application/json";
     }
 
-    // Authorization automatisch setzen, falls Token vorhanden
     if (token && !headers.Authorization && !headers.authorization) {
         headers["Authorization"] = `Bearer ${token}`;
     }
@@ -72,10 +76,8 @@ export async function apiFetch(path, options = {}) {
     const data = await readBodySafe(res);
 
     if (!res.ok) {
-        // 401 -> Token evtl. ungültig/abgelaufen, optional löschen
-        if (res.status === 401) {
-            // clearToken(); // ✅ aktivieren, wenn du bei 401 automatisch ausloggen willst
-        }
+        // optional: bei 401 ausloggen
+        // if (res.status === 401) clearToken();
         throw new Error(extractErrorMessage(data, res));
     }
 
@@ -89,10 +91,8 @@ export async function login(email, password) {
         body: JSON.stringify({ email, password }),
     });
 
-    // ✅ wenn Backend token liefert -> speichern
     if (data?.token) setToken(data.token);
 
-    // optional: user info speichern
     if (data?.userId || data?.email || data?.name) {
         localStorage.setItem(
             "user",
@@ -113,10 +113,8 @@ export async function register(name, email, password) {
         body: JSON.stringify({ name, email, password }),
     });
 
-    // ✅ nach Registrierung direkt token speichern (falls Response token enthält)
     if (data?.token) setToken(data.token);
 
-    // optional: user info speichern
     if (data?.userId || data?.email || data?.name) {
         localStorage.setItem(
             "user",
