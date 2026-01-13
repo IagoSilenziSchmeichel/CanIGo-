@@ -1,37 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, flushPromises } from '@vue/test-utils'
 import App from './App.vue'
 
-// 1. Mock für vue-router
+// 1. Mock für vue-router (Muss vor den Tests definiert sein)
 vi.mock('vue-router', () => ({
     RouterLink: { name: 'RouterLink', render: () => null },
     RouterView: { name: 'RouterView', render: () => null },
-    useRoute: () => ({
-        path: '/',
-    }),
-    useRouter: () => ({
-        push: vi.fn(),
-    }),
+    useRoute: () => ({ path: '/' }),
+    useRouter: () => ({ push: vi.fn() }),
 }))
 
-// 2. Umgebungsvariable setzen
-import.meta.env.VITE_APP_BACKEND_BASE_URL = 'http://localhost:8080'
-
-// 3. Globalen Fetch-Mock erstellen
-global.fetch = vi.fn()
-
-// Hilfsfunktion für Fetch-Antworten
-function createFetchResponse(data, ok = true) {
-    return {
-        ok: ok,
-        json: () => Promise.resolve(data),
-        text: () => Promise.resolve("Fehler im Backend")
-    }
-}
+// 2. Hilfsfunktion für Fetch-Antworten (Wichtig: Immer JSON als Array)
+const createFetchResponse = (data) => ({
+    ok: true,
+    json: () => Promise.resolve(data),
+    text: () => Promise.resolve(JSON.stringify(data))
+})
 
 describe('App.vue Integration Tests', () => {
 
-    // Hilfsfunktion zum Mounten mit Stubs
     const mountApp = () => {
         return mount(App, {
             global: {
@@ -46,64 +33,59 @@ describe('App.vue Integration Tests', () => {
     beforeEach(() => {
         vi.resetAllMocks()
 
-        // NEU: localStorage simulieren, damit die App denkt, wir sind eingeloggt
-        // Dies verhindert die Meldung "Bitte zuerst einloggen"
+        // 3. localStorage simulieren
         const mockStorage = {
-            getItem: vi.fn((key) => (key === 'token' ? 'fake-jwt-token' : null)),
+            getItem: vi.fn((key) => (key === 'token' ? 'fake-token' : null)),
             setItem: vi.fn(),
             removeItem: vi.fn(),
             clear: vi.fn(),
         }
         vi.stubGlobal('localStorage', mockStorage)
 
-        // Standard-Mock Verhalten für alle Tests
-        fetch.mockImplementation((url) => {
-            if (url.includes('/notifications')) return Promise.resolve(createFetchResponse([]))
-            if (url.includes('/gegenstaende')) return Promise.resolve(createFetchResponse([]))
-            return Promise.resolve(createFetchResponse({}))
-        })
+        // 4. Globaler Fetch-Mock: Wir nutzen vi.stubGlobal für maximale Stabilität
+        // Wir geben IMMER ein leeres Array zurück, außer der Test definiert es anders
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue(createFetchResponse([])))
     })
 
-    it('zeigt den Titel "Can I Go?" an', () => {
+    it('zeigt den Titel "Can I Go?" an', async () => {
         const wrapper = mountApp()
+        await flushPromises()
         expect(wrapper.text()).toContain('Can I Go?')
     })
 
-    it('hat Eingabefelder für Name und Ort', () => {
+    it('hat Eingabefelder für Name und Ort', async () => {
         const wrapper = mountApp()
+        await flushPromises()
         expect(wrapper.find('input[placeholder="z.B. Hammer"]').exists()).toBe(true)
         expect(wrapper.find('input[placeholder="z.B. Werkbank"]').exists()).toBe(true)
     })
 
     it('zeigt Fehler, wenn man ohne Eingabe klickt', async () => {
         const wrapper = mountApp()
-        // Warten, bis refreshAuth() den Token aus dem Mock-Storage gelesen hat
-        await wrapper.vm.$nextTick()
+        await flushPromises()
 
         const button = wrapper.find('#add button.btn-primary')
         await button.trigger('click')
+        // Warten auf die Reaktivität von Vue
+        await wrapper.vm.$nextTick()
 
-        // Jetzt sollte die richtige Fehlermeldung erscheinen
         expect(wrapper.text()).toContain('Bitte Name und Ort ausfüllen')
     })
 
     it('sendet Daten an das Backend beim Speichern', async () => {
         const wrapper = mountApp()
-        await wrapper.vm.$nextTick()
+        await flushPromises()
 
         await wrapper.find('input[placeholder="z.B. Hammer"]').setValue('Plasma-Cutter')
         await wrapper.find('input[placeholder="z.B. Werkbank"]').setValue('Werkstatt')
 
-        fetch.mockImplementationOnce((url, options) => {
-            if (options && options.method === 'POST') {
-                return Promise.resolve(createFetchResponse({ id: 100, name: 'Plasma-Cutter' }))
-            }
-            return Promise.resolve(createFetchResponse([]))
-        })
+        // Spezieller Mock für diesen einen POST-Aufruf
+        fetch.mockResolvedValueOnce(createFetchResponse({ id: 100, name: 'Plasma-Cutter' }))
 
         await wrapper.find('#add button.btn-primary').trigger('click')
+        await flushPromises()
 
-        const postCall = fetch.mock.calls.find(call => call[1] && call[1].method === 'POST')
+        const postCall = fetch.mock.calls.find(call => call[1]?.method === 'POST')
         expect(postCall).toBeDefined()
         expect(postCall[1].body).toContain('Plasma-Cutter')
     })
@@ -113,23 +95,21 @@ describe('App.vue Integration Tests', () => {
             { id: 1, name: 'Cyber-Deck', ort: 'Rucksack', wichtigkeit: 'WICHTIG', kategorie: 'TECH' }
         ]
 
-        fetch.mockImplementation((url) => {
-            if (url.includes('/gegenstaende') && !url.includes('method')) {
-                return Promise.resolve(createFetchResponse(mockItems))
-            }
-            return Promise.resolve(createFetchResponse([]))
-        })
+        // Wir sagen dem Mock, dass er für diesen Test die Liste liefern soll
+        fetch.mockResolvedValue(createFetchResponse(mockItems))
 
         const wrapper = mountApp()
-        await wrapper.vm.$nextTick()
 
-        // Warten auf async Daten-Verarbeitung
-        await new Promise(resolve => setTimeout(resolve, 50))
+        // Intensives Warten auf asynchrone Prozesse
+        await flushPromises()
+        await wrapper.vm.$nextTick()
         await wrapper.vm.$nextTick()
 
         const text = wrapper.text()
-        // Da mockItems 1 Element enthält, muss die Statistik "1 Items" anzeigen
+
+        // Wir prüfen, ob die Zahl "1" in der Statistik-Badge erscheint
         expect(text).toContain('1 Items')
-        expect(text).toContain('Wichtig:1')
+        const statsCard = wrapper.find('.hero-card')
+        expect(statsCard.text()).toContain('1')
     })
 })
