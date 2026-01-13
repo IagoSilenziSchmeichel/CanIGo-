@@ -46,6 +46,16 @@ describe('App.vue Integration Tests', () => {
     beforeEach(() => {
         vi.resetAllMocks()
 
+        // NEU: localStorage simulieren, damit die App denkt, wir sind eingeloggt
+        // Dies verhindert die Meldung "Bitte zuerst einloggen"
+        const mockStorage = {
+            getItem: vi.fn((key) => (key === 'token' ? 'fake-jwt-token' : null)),
+            setItem: vi.fn(),
+            removeItem: vi.fn(),
+            clear: vi.fn(),
+        }
+        vi.stubGlobal('localStorage', mockStorage)
+
         // Standard-Mock Verhalten für alle Tests
         fetch.mockImplementation((url) => {
             if (url.includes('/notifications')) return Promise.resolve(createFetchResponse([]))
@@ -67,13 +77,19 @@ describe('App.vue Integration Tests', () => {
 
     it('zeigt Fehler, wenn man ohne Eingabe klickt', async () => {
         const wrapper = mountApp()
+        // Warten, bis refreshAuth() den Token aus dem Mock-Storage gelesen hat
+        await wrapper.vm.$nextTick()
+
         const button = wrapper.find('#add button.btn-primary')
         await button.trigger('click')
+
+        // Jetzt sollte die richtige Fehlermeldung erscheinen
         expect(wrapper.text()).toContain('Bitte Name und Ort ausfüllen')
     })
 
     it('sendet Daten an das Backend beim Speichern', async () => {
         const wrapper = mountApp()
+        await wrapper.vm.$nextTick()
 
         await wrapper.find('input[placeholder="z.B. Hammer"]').setValue('Plasma-Cutter')
         await wrapper.find('input[placeholder="z.B. Werkbank"]').setValue('Werkstatt')
@@ -105,12 +121,14 @@ describe('App.vue Integration Tests', () => {
         })
 
         const wrapper = mountApp()
+        await wrapper.vm.$nextTick()
 
-        // Warten auf async Daten
+        // Warten auf async Daten-Verarbeitung
         await new Promise(resolve => setTimeout(resolve, 50))
         await wrapper.vm.$nextTick()
 
         const text = wrapper.text()
+        // Da mockItems 1 Element enthält, muss die Statistik "1 Items" anzeigen
         expect(text).toContain('1 Items')
         expect(text).toContain('Wichtig:1')
     })
