@@ -294,11 +294,11 @@ const groupTitle = (key) => {
                 </div>
 
                 <div class="card-body">
-                  <div class="kv"><span>Ort</span><strong>{{ g.ort }}</strong></div>
-                  <div class="kv"><span>Zuletzt</span><strong>{{ dateOrDash(g.lastUsed) }}</strong></div>
-                  <div class="kv"><span>Wegwerf am</span><strong>{{ dateOrDash(g.wegwerfAm) }}</strong></div>
-                  <div class="kv"><span>Kaufpreis</span><strong>{{ moneyOrDash(g.kaufpreis) }}</strong></div>
-                  <div class="kv"><span>Wunschpreis</span><strong>{{ moneyOrDash(g.wunschVerkaufspreis) }}</strong></div>
+                  <div class="rowline"><span class="k">Ort:</span><span class="v">{{ g.ort || '—' }}</span></div>
+                  <div class="rowline"><span class="k">Zuletzt:</span><span class="v">{{ dateOrDash(g.lastUsed) }}</span></div>
+                  <div class="rowline"><span class="k">Wegwerf am:</span><span class="v">{{ dateOrDash(g.wegwerfAm) }}</span></div>
+                  <div class="rowline"><span class="k">Kaufpreis:</span><span class="v">{{ moneyOrDash(g.kaufpreis) }}</span></div>
+                  <div class="rowline"><span class="k">Wunschpreis:</span><span class="v">{{ moneyOrDash(g.wunschVerkaufspreis) }}</span></div>
                 </div>
 
                 <div class="card-actions">
@@ -531,6 +531,32 @@ mark.hl{
 .field{ display:flex; flex-direction:column; gap: 8px; font-size: 13px; color: rgba(230,242,255,.72); }
 input, select{ padding: 12px; border-radius: 16px; border: 1px solid rgba(230,242,255,.16); background: rgba(230,242,255,.06); color: rgba(230,242,255,.95); outline: none; }
 
+/* ✅ Detail-Zeilen in der Card: "Label: Wert" */
+.card-body{
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.rowline{
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 10px;
+  align-items: baseline;
+}
+
+.k{
+  color: rgba(230,242,255,.65);
+  font-size: 13px;
+}
+
+.v{
+  color: rgba(230,242,255,.95);
+  font-weight: 600;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
 @media (max-width: 720px){
   .form-grid{ grid-template-columns: 1fr; }
 }
