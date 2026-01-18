@@ -5,6 +5,7 @@ import com.example.demo.error.NotFoundException;
 import com.example.demo.user.AppUser;
 import com.example.demo.user.AppUserRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional; // ✅ Neu hinzugefügt
 
 import java.time.LocalDate;
 import java.util.List;
@@ -30,6 +31,7 @@ public class GegenstandService {
                 .orElseThrow(() -> new NotFoundException("Gegenstand nicht gefunden: " + id));
     }
 
+    @Transactional // ✅ Sorgt für sicheres Speichern
     public Gegenstand createForUser(Long userId, GegenstandCreateDto dto) {
         AppUser owner = userRepo.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User nicht gefunden: " + userId));
@@ -41,12 +43,14 @@ public class GegenstandService {
         return repo.save(g);
     }
 
+    @Transactional // ✅ Sorgt für sicheres Update
     public Gegenstand updateForUser(Long userId, Long id, GegenstandCreateDto dto) {
         Gegenstand g = getByIdForUser(userId, id); // ✅ Ownership check
         applyDto(g, dto);
         return repo.save(g);
     }
 
+     @Transactional // ✅ FIX: Verhindert "No EntityManager with actual transaction available"
     public void deleteForUser(Long userId, Long id) {
         if (!repo.existsByIdAndOwner_Id(id, userId)) {
             throw new NotFoundException("Gegenstand nicht gefunden: " + id);
