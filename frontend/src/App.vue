@@ -323,7 +323,6 @@ onBeforeUnmount(() => {
               <p class="cloud c9"><span class="lead">Einlagern</span> – Box + Label + fester Platz. Dazu ein Datum, wann du es wieder prüfst.</p>
               <p class="cloud c10"><span class="lead">Digitalisieren</span> – Scannen, sinnvoll benennen, Backup. Papier danach leichter reduzieren.</p>
               <p class="cloud c11"><span class="lead">Set komplettieren</span> – Zubehör zusammensuchen und als Set anbieten: wirkt wertiger, geht schneller weg.</p>
-              <p class="cloud c12"><span class="lead">Umwidmen</span> – Neuer Zweck, neuer Ort. Wenn es trotzdem liegt: konsequent weitergeben.</p>
             </div>
           </div>
         </section>
