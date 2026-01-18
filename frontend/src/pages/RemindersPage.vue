@@ -9,19 +9,7 @@ const props = defineProps({
   formatDateTime: Function
 })
 
-/* --- Helpers --- */
-function cleanMessage(msg) {
-  // Entfernt "UNGELESEN" aus dem Text, falls es irgendwo doch drin ist
-  return String(msg ?? '').replace(/\bUNGELESEN\b/gi, '').trim()
-}
-
-function isUnread(n) {
-  // Standard: unread = !seen
-  // Falls Backend anders: hier anpassen (z.B. return !n.gelesen)
-  return !n?.seen
-}
-
-const unreadCount = computed(() => props.notifications.filter(isUnread).length)
+const unreadCount = computed(() => props.notifications?.length ?? 0)
 </script>
 
 <template>
@@ -29,9 +17,7 @@ const unreadCount = computed(() => props.notifications.filter(isUnread).length)
     <div class="panel-head row">
       <div>
         <h2>Erinnerungen</h2>
-        <p>
-          {{ unreadCount }} ungelesen
-        </p>
+        <p>{{ unreadCount }} ungelesen</p>
       </div>
       <button class="btn btn-ghost" @click="ladeNotifications">Neu laden</button>
     </div>
@@ -41,7 +27,7 @@ const unreadCount = computed(() => props.notifications.filter(isUnread).length)
       <span>{{ notifError }}</span>
     </div>
 
-    <div v-if="notifications.length === 0" class="empty">
+    <div v-if="unreadCount === 0" class="empty">
       <div class="empty-card">
         <strong>Keine neuen Erinnerungen 🎉</strong>
         <p>Wenn ein Gegenstand fällig ist, erscheint hier eine Benachrichtigung.</p>
@@ -49,43 +35,28 @@ const unreadCount = computed(() => props.notifications.filter(isUnread).length)
     </div>
 
     <ul v-else class="grid">
-      <li
-          v-for="n in notifications"
-          :key="n.id"
-          class="card notif"
-          :class="{ unread: isUnread(n) }"
-      >
+      <li v-for="n in notifications" :key="n.id" class="card unread">
         <div class="card-top">
-          <div class="card-title">
-            <strong>{{ cleanMessage(n.message) }}</strong>
-
-            <span v-if="isUnread(n)" class="badge-unread">Ungelesen</span>
-            <span v-else class="badge-read">Gesehen</span>
+          <div class="title-wrap">
+            <strong class="title">{{ n.message }}</strong>
+            <span class="chip chip-unread">Ungelesen</span>
           </div>
-
           <div class="id">#{{ n.id }}</div>
         </div>
 
-        <div class="card-body notif-body">
-          <div class="rowline">
-            <span class="k">Zeit:</span>
-            <span class="v"><strong>{{ formatDateTime(n.createdAt) }}</strong></span>
+        <div class="card-body">
+          <div class="kv">
+            <span>Zeit</span>
+            <strong>{{ formatDateTime(n.createdAt) }}</strong>
           </div>
-
-          <div class="rowline">
-            <span class="k">Gegenstand-ID:</span>
-            <span class="v"><strong>{{ n.gegenstandId ?? '—' }}</strong></span>
+          <div class="kv">
+            <span>Gegenstand-ID</span>
+            <strong>{{ n.gegenstandId ?? '—' }}</strong>
           </div>
         </div>
 
-        <div class="actions" style="margin-top: 12px;">
-          <button
-              v-if="isUnread(n)"
-              class="btn btn-primary"
-              @click="markNotifSeen(n.id)"
-          >
-            Gesehen
-          </button>
+        <div class="card-actions">
+          <button class="btn btn-primary" @click="markNotifSeen(n.id)">Gesehen</button>
         </div>
       </li>
     </ul>
@@ -93,59 +64,112 @@ const unreadCount = computed(() => props.notifications.filter(isUnread).length)
 </template>
 
 <style scoped>
-/* --- Label/Wert Darstellung wie gewünscht --- */
-.rowline{
+/* Layout */
+.grid{
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+@media (max-width: 900px){
+  .grid{ grid-template-columns: 1fr; }
+}
+
+/* Card */
+.card{
+  border-radius: 18px;
+  border: 1px solid rgba(230,242,255,.10);
+  background: rgba(10,14,28,.22);
+  padding: 14px;
+  overflow: hidden; /* wichtig: nichts ragt raus */
+}
+
+.card-top{
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.title-wrap{
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap; /* verhindert rauslaufen */
+  min-width: 0;
+}
+
+.title{
+  display: inline-block;
+  max-width: 100%;
+  word-break: break-word;
+}
+
+.id{
+  opacity: .7;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* Unread = visuell hervorheben */
+.unread{
+  border-color: rgba(255, 240, 170, .30);
+  background: rgba(255, 240, 170, .05);
+  box-shadow:
+      0 0 0 1px rgba(255, 240, 170, .18),
+      0 0 26px rgba(255, 240, 170, .10);
+}
+
+/* Chip */
+.chip{
+  display: inline-flex;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  border: 1px solid rgba(230,242,255,.14);
+  background: rgba(230,242,255,.06);
+  color: rgba(230,242,255,.88);
+  white-space: nowrap;
+}
+
+.chip-unread{
+  border-color: rgba(255, 240, 170, .26);
+  background: rgba(255, 240, 170, .14);
+  color: rgba(230,242,255,.98);
+}
+
+/* KV Zeilen mit : */
+.kv{
   display: grid;
   grid-template-columns: 140px 1fr;
   gap: 10px;
   align-items: baseline;
+  padding: 2px 0;
 }
-.k{
-  color: rgba(230,242,255,.65);
-  font-size: 13px;
+
+.kv span{
+  color: rgba(230,242,255,.72);
+  white-space: nowrap;
 }
-.v{
+.kv span::after{
+  content: ":";
+  margin-left: 2px;
+  color: rgba(230,242,255,.55);
+}
+.kv strong{
   color: rgba(230,242,255,.95);
-  font-weight: 600;
-  font-size: 13px;
-  overflow-wrap: anywhere;
 }
 
-/* --- Notification-Card Styling --- */
-.notif-body{
+/* Actions sauber in Box */
+.card-actions{
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  justify-content: flex-end;
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(230,242,255,.08);
 }
 
-/* --- Ungelesen Highlight (Glow) --- */
-.card.unread{
-  border-color: rgba(255, 240, 170, .35) !important;
-  background: rgba(255, 240, 170, .06) !important;
-  box-shadow:
-      0 0 0 1px rgba(255, 240, 170, .20),
-      0 0 26px rgba(255, 240, 170, .12);
-}
-
-/* --- Badges statt "UNGELESEN" Text --- */
-.badge-unread{
-  margin-left: 10px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  border: 1px solid rgba(255, 240, 170, .35);
-  background: rgba(255, 240, 170, .12);
-  color: rgba(230,242,255,.98);
-  font-weight: 800;
-}
-
-.badge-read{
-  margin-left: 10px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  border: 1px solid rgba(230,242,255,.16);
-  background: rgba(230,242,255,.06);
-  color: rgba(230,242,255,.8);
-}
+/* Deine bestehenden Buttons nutzen, nur falls nötig: */
+.btn{ border-radius: 999px; }
 </style>
