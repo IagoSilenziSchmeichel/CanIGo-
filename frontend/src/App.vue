@@ -2,7 +2,13 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
-import { getToken, clearToken, getGegenstaende, createGegenstand, apiFetch } from './api'
+import {
+  getToken,
+  clearToken,
+  getGegenstaende,
+  createGegenstand,
+  apiFetch
+} from './api'
 
 const route = useRoute()
 const router = useRouter()
@@ -13,14 +19,17 @@ const isLoggedIn = ref(false)
 function refreshAuth() {
   isLoggedIn.value = !!getToken()
 }
+
 function goLogin() {
   router.push('/login')
 }
+
 function logout() {
   clearToken()
   refreshAuth()
   router.push('/')
 }
+
 function handleAuthError(e) {
   const msg = String(e?.message || e)
   if (/401|403|nicht eingeloggt|token/i.test(msg)) {
@@ -97,8 +106,7 @@ async function speichern() {
     lastUsed: lastUsed.value ? lastUsed.value : null,
     wegwerfAm: wegwerfAm.value ? wegwerfAm.value : null,
     kaufpreis: kaufpreis.value !== '' ? Number(kaufpreis.value) : null,
-    wunschVerkaufspreis:
-        wunschVerkaufspreis.value !== '' ? Number(wunschVerkaufspreis.value) : null
+    wunschVerkaufspreis: wunschVerkaufspreis.value !== '' ? Number(wunschVerkaufspreis.value) : null
   }
 
   try {
@@ -149,6 +157,14 @@ async function markNotifSeen(id) {
   }
 }
 
+/* ---------------- Home-only helper ---------------- */
+function goToAddAndFocus() {
+  if (route.path !== '/') router.push('/')
+  setTimeout(() => {
+    document.getElementById('add')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, 50)
+}
+
 /* ---------------- Lifecycle ---------------- */
 let notifInterval = null
 
@@ -159,6 +175,7 @@ function onStorageChange(e) {
     ladeNotifications()
   }
 }
+
 function onAuthChanged() {
   refreshAuth()
   ladeDaten()
@@ -201,63 +218,51 @@ onBeforeUnmount(() => {
 
         <nav class="topbar-center">
           <RouterLink to="/" class="navlink" :class="{ active: route.path === '/' }">Home</RouterLink>
-          <RouterLink to="/items" class="navlink" :class="{ active: route.path === '/items' }"
-          >Gegenstände</RouterLink
-          >
-          <RouterLink
-              to="/notifications"
-              class="navlink"
-              :class="{ active: route.path === '/notifications' }"
-          >
+          <RouterLink to="/items" class="navlink" :class="{ active: route.path === '/items' }">Gegenstände</RouterLink>
+          <RouterLink to="/notifications" class="navlink" :class="{ active: route.path === '/notifications' }">
             Erinnerungen ({{ notifications.length }})
           </RouterLink>
         </nav>
 
         <div class="topbar-right">
-          <button v-if="!isLoggedIn" class="navlink as-btn login-btn" type="button" @click="goLogin">
-            Login
-          </button>
-          <button v-else class="navlink as-btn logout-btn" type="button" @click="logout">
-            Logout
-          </button>
+          <button v-if="!isLoggedIn" class="navlink as-btn login-btn" type="button" @click="goLogin">Login</button>
+          <button v-else class="navlink as-btn logout-btn" type="button" @click="logout">Logout</button>
         </div>
       </div>
     </header>
 
     <!-- HOME -->
     <template v-if="route.path === '/'">
-      <!-- ✅ Hero & Quick Insight: gleicher Container + gleiche Kanten wie unten -->
       <section class="hero hero-min">
-        <div class="wrap hero-grid">
-          <div class="hero-copy">
-            <h1 class="hero-title hero-title-big">Can I Go?</h1>
-            <p class="hero-sub hero-sub-big">
-              Speichere und ordne deine Gegenstände – und bekomme Erinnerungen, wenn etwas fällig ist.
-            </p>
-          </div>
+        <div class="wrap">
+          <div class="hero-row">
+            <div class="hero-copy">
+              <h1 class="hero-title hero-title-big">Can I Go?</h1>
+              <p class="hero-sub hero-sub-big">
+                Speichere und ordne deine Gegenstände – und bekomme Erinnerungen, wenn etwas fällig ist.
+              </p>
 
-          <aside class="hero-card">
-            <div class="hero-card-top">
-              <span class="mini-title">Quick Insight</span>
-              <span class="mini-badge">{{ liste.length }} Items</span>
+              <div class="hero-cta">
+                <button class="btn btn-primary" type="button" @click="goToAddAndFocus">Zum Hinzufügen</button>
+              </div>
             </div>
-            <div class="hero-card-row">
-              <span>Wichtig:</span
-              ><strong>{{ liste.filter((x) => x.wichtigkeit === 'WICHTIG').length }}</strong>
-            </div>
-            <div class="hero-card-row">
-              <span>Wegwerf-Datum:</span><strong>{{ liste.filter((x) => x.wegwerfAm).length }}</strong>
-            </div>
-            <div class="hero-card-row">
-              <span>Erinnerungen:</span><strong>{{ notifications.length }}</strong>
-            </div>
-          </aside>
+
+            <aside class="hero-card">
+              <div class="hero-card-top">
+                <span class="mini-title">Quick Insight</span>
+                <span class="mini-badge">{{ liste.length }} Items</span>
+              </div>
+              <div class="hero-card-row"><span>Wichtig:</span><strong>{{ liste.filter(x => x.wichtigkeit === 'WICHTIG').length }}</strong></div>
+              <div class="hero-card-row"><span>Wegwerf-Datum:</span><strong>{{ liste.filter(x => x.wegwerfAm).length }}</strong></div>
+              <div class="hero-card-row"><span>Erinnerungen:</span><strong>{{ notifications.length }}</strong></div>
+            </aside>
+          </div>
         </div>
       </section>
 
       <main class="content">
-        <!-- ✅ Add Panel: exakt gleiche Kante wie Hero/Quick Insight -->
-        <section id="add" class="panel panel-big panel-tight">
+        <!-- Add -->
+        <section id="add" class="panel panel-big">
           <div class="panel-head panel-head-big">
             <h2>Neuen Gegenstand hinzufügen</h2>
             <p>Felder mit * sind Pflicht. Alles andere ist optional.</p>
@@ -290,18 +295,157 @@ onBeforeUnmount(() => {
             <label class="field"><span>Zuletzt benutzt</span><input v-model="lastUsed" type="date" /></label>
             <label class="field"><span>Wegwerf-Datum</span><input v-model="wegwerfAm" type="date" /></label>
             <label class="field"><span>Kaufpreis (€)</span><input v-model="kaufpreis" type="number" step="0.01" /></label>
-            <label class="field"
-            ><span>Wunschpreis (€)</span><input v-model="wunschVerkaufspreis" type="number" step="0.01"
-            /></label>
+            <label class="field"><span>Wunschpreis (€)</span><input v-model="wunschVerkaufspreis" type="number" step="0.01" /></label>
           </div>
 
           <div v-if="fehler" class="alert form-alert">
             <strong>Hinweis:</strong> {{ fehler }}
           </div>
 
-          <!-- ✅ Button sitzt IM Panel sauber unterhalb, ohne Überlappung -->
           <div class="actions actions-big">
             <button class="btn btn-primary btn-big" type="button" @click="speichern">Hinzufügen</button>
+          </div>
+        </section>
+
+        <!-- Scroll section: “Pläne & Tipps” im Stil der Screenshots -->
+        <section class="panel panel-wide">
+          <div class="panel-head panel-head-big">
+            <h2>Pläne für Gegenstände</h2>
+            <p>Ideen, was du damit machen kannst – kurz, klar und schnell entscheidbar.</p>
+          </div>
+
+          <div class="plans">
+            <article class="plan-row">
+              <div class="plan-left">
+                <div class="plan-title">Verkaufen</div>
+                <div class="plan-meta">Preis • Plattform • Fotos</div>
+                <span class="plan-tag">PLAN</span>
+              </div>
+              <div class="plan-text">
+                Erstelle eine kurze Anzeige, setze einen realistischen Wunschpreis und plane Abholung oder Versand.
+              </div>
+            </article>
+
+            <article class="plan-row">
+              <div class="plan-left">
+                <div class="plan-title">Spenden</div>
+                <div class="plan-meta">Abgabe • Organisation • Termin</div>
+                <span class="plan-tag">PLAN</span>
+              </div>
+              <div class="plan-text">
+                Wähle eine passende Stelle, bündle mehrere Dinge und setze dir einen festen Abgabetag.
+              </div>
+            </article>
+
+            <article class="plan-row">
+              <div class="plan-left">
+                <div class="plan-title">Wegwerfen</div>
+                <div class="plan-meta">Trennung • Restmüll • Recyclinghof</div>
+                <span class="plan-tag">PLAN</span>
+              </div>
+              <div class="plan-text">
+                Prüfe, ob es Sondermüll ist, trenne Materialien korrekt und plane den Entsorgungsweg.
+              </div>
+            </article>
+
+            <article class="plan-row">
+              <div class="plan-left">
+                <div class="plan-title">Reparieren</div>
+                <div class="plan-meta">Ersatzteile • Werkzeug • Zeitfenster</div>
+                <span class="plan-tag">PLAN</span>
+              </div>
+              <div class="plan-text">
+                Defekt notieren, Teile/Material beschaffen und ein kurzes Reparatur-Zeitfenster blocken.
+              </div>
+            </article>
+
+            <article class="plan-row">
+              <div class="plan-left">
+                <div class="plan-title">Upcycling</div>
+                <div class="plan-meta">Umbau • Material • Idee</div>
+                <span class="plan-tag">PLAN</span>
+              </div>
+              <div class="plan-text">
+                Nutze das Teil als Basis und gib ihm eine neue Funktion – mit kleinem Aufwand und klarer Idee.
+              </div>
+            </article>
+
+            <article class="plan-row">
+              <div class="plan-left">
+                <div class="plan-title">Verschenken</div>
+                <div class="plan-meta">Kontakt • Abholung • Übergabe</div>
+                <span class="plan-tag">PLAN</span>
+              </div>
+              <div class="plan-text">
+                Frage im Freundes-/Familienkreis, kläre Abholung und setze eine kurze Frist für Rückmeldung.
+              </div>
+            </article>
+
+            <article class="plan-row">
+              <div class="plan-left">
+                <div class="plan-title">Tauschen</div>
+                <div class="plan-meta">Tauschbörse • Wert • Bedingungen</div>
+                <span class="plan-tag">PLAN</span>
+              </div>
+              <div class="plan-text">
+                Lege fest, was du im Gegenzug brauchst, und nutze lokale Gruppen oder Tauschplattformen.
+              </div>
+            </article>
+
+            <article class="plan-row">
+              <div class="plan-left">
+                <div class="plan-title">Ausleihen statt besitzen</div>
+                <div class="plan-meta">Bedarf • Häufigkeit • Alternative</div>
+                <span class="plan-tag">PLAN</span>
+              </div>
+              <div class="plan-text">
+                Wenn du es selten nutzt: gib es ab und organisiere für den Bedarf eine Ausleih-Option.
+              </div>
+            </article>
+
+            <article class="plan-row">
+              <div class="plan-left">
+                <div class="plan-title">Einlagern</div>
+                <div class="plan-meta">Box • Beschriftung • Ort</div>
+                <span class="plan-tag">PLAN</span>
+              </div>
+              <div class="plan-text">
+                Lege eine Kiste an, beschrifte sie eindeutig und definiere einen festen Lagerplatz.
+              </div>
+            </article>
+
+            <article class="plan-row">
+              <div class="plan-left">
+                <div class="plan-title">Digitalisieren</div>
+                <div class="plan-meta">Scan • Backup • Ordnung</div>
+                <span class="plan-tag">PLAN</span>
+              </div>
+              <div class="plan-text">
+                Für Unterlagen oder Erinnerungsstücke: digital sichern, sauber benennen und ablegen.
+              </div>
+            </article>
+
+            <article class="plan-row">
+              <div class="plan-left">
+                <div class="plan-title">Set komplettieren</div>
+                <div class="plan-meta">Teile • Zubehör • Vollständigkeit</div>
+                <span class="plan-tag">PLAN</span>
+              </div>
+              <div class="plan-text">
+                Fehlende Teile ergänzen, dann als vollständiges Set verkaufen oder dauerhaft sinnvoll lagern.
+              </div>
+            </article>
+
+            <article class="plan-row">
+              <div class="plan-left">
+                <div class="plan-title">Umwidmen</div>
+                <div class="plan-meta">Neuer Zweck • Platz • Routine</div>
+                <span class="plan-tag">PLAN</span>
+              </div>
+              <div class="plan-text">
+                Gib dem Gegenstand einen klaren neuen Einsatzort und integriere ihn in deinen Alltag.
+              </div>
+            </article>
           </div>
         </section>
 
@@ -345,7 +489,6 @@ onBeforeUnmount(() => {
   --br-border: rgba(41,243,255,.14);
   --br-pink: #FF3DAE;
   --br-glass: rgba(10,14,28,.65);
-  --br-shadow: 0 22px 70px rgba(0,0,0,.55);
 
   min-height: 100vh;
   color: var(--br-ink);
@@ -358,7 +501,7 @@ onBeforeUnmount(() => {
 /* box sizing */
 .page :deep(*),
 .page :deep(*::before),
-.page :deep(*::after) {
+.page :deep(*::after){
   box-sizing: border-box;
 }
 
@@ -373,7 +516,6 @@ onBeforeUnmount(() => {
 }
 
 .topbar-inner {
-  max-width: 100%;
   padding: 10px 24px;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -391,16 +533,8 @@ onBeforeUnmount(() => {
   outline: none;
 }
 
-.topbar-center {
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-.topbar-right {
-  display: flex;
-  justify-content: flex-end;
-}
+.topbar-center { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.topbar-right { display: flex; justify-content: flex-end; }
 
 .navlink {
   color: var(--br-muted);
@@ -420,31 +554,21 @@ onBeforeUnmount(() => {
   background: rgba(41,243,255,.10);
 }
 
-.as-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-}
-.login-btn {
-  border: 1px solid rgba(41,243,255,.30) !important;
-  color: var(--br-cyan);
-}
-.logout-btn {
-  color: var(--br-pink);
-}
+.as-btn { background: none; border: none; cursor: pointer; }
+.login-btn { border: 1px solid rgba(41,243,255,.30) !important; color: var(--br-cyan); }
+.logout-btn { color: var(--br-pink); }
 
-/* ---------- Shared Container (WICHTIG fürs “gerade” Layout) ---------- */
-.wrap {
+/* ---------- Shared Wrap / Content ---------- */
+.wrap{
   max-width: 1100px;
   margin: 0 auto;
-  padding: 0 20px; /* gleiche Kante wie .content */
+  padding: 0 20px;
 }
 
-/* ---------- Layout ---------- */
 .content {
   max-width: 1100px;
   margin: 0 auto;
-  padding: 20px 20px 80px;
+  padding: 18px 20px 80px;
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -455,118 +579,113 @@ onBeforeUnmount(() => {
   border: 1px solid var(--br-border);
   background: var(--br-glass);
   padding: 28px;
-  overflow: hidden; /* nichts darf raus */
+  overflow: hidden; /* nie rauslaufen */
 }
 
-.panel-head {
+.panel-wide{
+  padding: 30px;
+}
+
+.panel-head{
   display: flex;
   flex-direction: column;
   gap: 6px;
   margin-bottom: 16px;
 }
-.panel-head h2 { margin: 0; }
-.panel-head p { margin: 0; color: var(--br-muted); }
+.panel-head h2{ margin: 0; }
+.panel-head p{ margin: 0; color: var(--br-muted); }
 
 /* ---------- Hero ---------- */
-.hero-min {
-  padding: 54px 0 10px; /* links/rechts handled durch .wrap */
+.hero-min{
+  padding: 54px 0 10px;
 }
 
-.hero-grid {
+.hero-row{
   display: grid;
   grid-template-columns: 1fr 420px;
   gap: 32px;
   align-items: start;
 }
 
-.hero-copy {
-  max-width: 720px;
-}
+.hero-copy{ max-width: 720px; }
 
-.hero-title-big {
-  font-size: 72px;
-  letter-spacing: .5px;
+.hero-title-big{
+  font-size: 76px;
+  letter-spacing: .4px;
   margin: 0;
 }
 
-.hero-sub-big {
+.hero-sub-big{
   font-size: 18px;
-  line-height: 1.5;
+  line-height: 1.55;
   max-width: 640px;
-  color: var(--br-muted);
   margin: 10px 0 0;
+  color: var(--br-muted);
 }
 
-/* Quick Insight */
+.hero-cta{
+  margin-top: 18px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
 .hero-card {
   border-radius: 24px;
   border: 1px solid var(--br-border);
   background: rgba(10,14,28,.50);
   padding: 24px;
-  overflow: hidden; /* Chips/Badges niemals raus */
 }
 
-.hero-card-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 10px;
+.hero-card-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-bottom:10px;
 }
 
-.mini-title { color: var(--br-muted); font-size: 12px; }
-.mini-badge {
+.mini-title{ color: var(--br-muted); font-size: 12px; }
+.mini-badge{
   font-size: 12px;
   padding: 4px 10px;
   border-radius: 999px;
   border: 1px solid rgba(41,243,255,.18);
   background: rgba(41,243,255,.08);
   color: var(--br-ink);
-  white-space: nowrap;
 }
 
-.hero-card-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 12px 0;
-  border-top: 1px solid rgba(230,242,255,.08);
-}
-
-/* ---------- Bigger Add Panel ---------- */
-.panel-big { padding: 34px; }
-.panel-head-big h2 { font-size: 26px; }
-.panel-head-big p { font-size: 14px; }
-
-/* ✅ optional: Panel wirkt “breiter”, aber bleibt exakt auf der gleichen Kante */
-.panel-tight {
-  /* nichts — absichtlich: exakt gleiche Kanten wie wrap/content */
+.hero-card-row{
+  display:flex;
+  justify-content:space-between;
+  padding:12px 0;
+  border-top:1px solid rgba(230,242,255,.08);
 }
 
 /* ---------- Form ---------- */
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-  align-items: start;
-  padding-bottom: 6px;
-}
+.panel-big{ padding: 34px; }
+.panel-head-big h2{ font-size: 26px; }
+.panel-head-big p{ font-size: 14px; }
 
-.form-grid-big {
+.form-grid{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
   gap: 18px;
-  margin-top: 10px;
+  align-items:start;
+  padding-bottom: 8px;
 }
 
-.field {
-  display: flex;
-  flex-direction: column;
+.field{
+  display:flex;
+  flex-direction:column;
   gap: 8px;
   font-size: 13px;
   color: var(--br-muted);
   min-width: 0;
 }
 
-input,
-select {
+input, select{
   width: 100%;
   padding: 12px 14px;
   border-radius: 12px;
@@ -577,28 +696,21 @@ select {
   min-height: 44px;
 }
 
-input:focus,
-select:focus {
+input:focus, select:focus{
   border-color: rgba(41,243,255,.35);
   box-shadow: 0 0 0 3px rgba(41,243,255,.10);
 }
 
-/* ---------- Actions ---------- */
-.actions {
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
+.actions{
+  display:flex;
+  align-items:center;
   gap: 12px;
-
   margin-top: 22px;
   padding-top: 16px;
   border-top: 1px solid rgba(230,242,255,.10);
 }
 
-.actions .btn { min-width: 160px; }
-
-/* ---------- Buttons ---------- */
-.btn {
+.btn{
   padding: 12px 24px;
   border-radius: 999px;
   font-weight: 700;
@@ -612,19 +724,71 @@ select:focus {
   line-height: 1;
 }
 
-.btn-primary {
+.btn-primary{
   background: linear-gradient(90deg, rgba(41,243,255,.25), rgba(255,176,0,.15));
   color: #fff;
 }
 
-.btn-big {
+.btn-big{
   min-width: 190px;
   padding: 14px 28px;
   font-size: 14px;
 }
 
+/* ---------- Plans (scroll rows like inspiration) ---------- */
+.plans{
+  display: grid;
+  gap: 12px;
+}
+
+.plan-row{
+  border-radius: 18px;
+  border: 1px solid rgba(230,242,255,.10);
+  background: rgba(10,14,28,.30);
+  padding: 18px;
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.plan-left{
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+
+.plan-title{
+  font-weight: 900;
+  font-size: 18px;
+  letter-spacing: .2px;
+}
+
+.plan-meta{
+  color: rgba(230,242,255,.55);
+  font-size: 13px;
+}
+
+.plan-tag{
+  justify-self: start;
+  margin-top: 4px;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(41,243,255,.18);
+  background: rgba(41,243,255,.08);
+  color: rgba(230,242,255,.92);
+}
+
+.plan-text{
+  color: rgba(230,242,255,.85);
+  line-height: 1.6;
+  font-size: 14px;
+  max-width: 680px;
+}
+
 /* ---------- Alerts / Footer ---------- */
-.alert {
+.alert{
   padding: 16px;
   border-radius: 12px;
   background: rgba(255, 106, 0, 0.10);
@@ -633,23 +797,21 @@ select:focus {
   margin-top: 16px;
 }
 
-.footer {
-  text-align: center;
+.footer{
+  text-align:center;
   padding: 40px;
   font-size: 12px;
   color: rgba(230,242,255, 0.35);
 }
 
 /* ---------- Responsive ---------- */
-@media (max-width: 900px) {
+@media (max-width: 980px){
   .topbar-inner { grid-template-columns: 1fr; }
   .nav-search-input { width: 100%; }
-
-  .hero-grid { grid-template-columns: 1fr; }
-  .hero-title-big { font-size: 46px; }
+  .hero-row { grid-template-columns: 1fr; }
+  .hero-title-big { font-size: 52px; }
   .hero-sub-big { font-size: 16px; }
-
-  .panel-big { padding: 26px; }
   .form-grid { grid-template-columns: 1fr; }
+  .plan-row { grid-template-columns: 1fr; }
 }
 </style>
