@@ -43,7 +43,6 @@ describe('App.vue Integration Tests', () => {
         vi.stubGlobal('localStorage', mockStorage)
 
         // 4. Globaler Fetch-Mock: Wir nutzen vi.stubGlobal für maximale Stabilität
-        // Wir geben IMMER ein leeres Array zurück, außer der Test definiert es anders
         vi.stubGlobal('fetch', vi.fn().mockResolvedValue(createFetchResponse([])))
     })
 
@@ -66,7 +65,6 @@ describe('App.vue Integration Tests', () => {
 
         const button = wrapper.find('#add button.btn-primary')
         await button.trigger('click')
-        // Warten auf die Reaktivität von Vue
         await wrapper.vm.$nextTick()
 
         expect(wrapper.text()).toContain('Bitte Name und Ort ausfüllen')
@@ -79,7 +77,6 @@ describe('App.vue Integration Tests', () => {
         await wrapper.find('input[placeholder="z.B. Hammer"]').setValue('Plasma-Cutter')
         await wrapper.find('input[placeholder="z.B. Werkbank"]').setValue('Werkstatt')
 
-        // Spezieller Mock für diesen einen POST-Aufruf
         fetch.mockResolvedValueOnce(createFetchResponse({ id: 100, name: 'Plasma-Cutter' }))
 
         await wrapper.find('#add button.btn-primary').trigger('click')
@@ -95,21 +92,20 @@ describe('App.vue Integration Tests', () => {
             { id: 1, name: 'Cyber-Deck', ort: 'Rucksack', wichtigkeit: 'WICHTIG', kategorie: 'TECH' }
         ]
 
-        // Wir sagen dem Mock, dass er für diesen Test die Liste liefern soll
         fetch.mockResolvedValue(createFetchResponse(mockItems))
 
         const wrapper = mountApp()
 
-        // Intensives Warten auf asynchrone Prozesse
         await flushPromises()
         await wrapper.vm.$nextTick()
         await wrapper.vm.$nextTick()
 
         const text = wrapper.text()
-
-        // Wir prüfen, ob die Zahl "1" in der Statistik-Badge erscheint
         expect(text).toContain('1 Items')
-        const statsCard = wrapper.find('.hero-card')
+
+        // FIX HIER: Die Klasse wurde von .hero-card zu .insight geändert
+        const statsCard = wrapper.find('.insight')
+        expect(statsCard.exists()).toBe(true)
         expect(statsCard.text()).toContain('1')
     })
 })
