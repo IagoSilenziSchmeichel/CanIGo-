@@ -233,42 +233,37 @@ onBeforeUnmount(() => {
 
     <!-- HOME -->
     <template v-if="route.path === '/'">
-      <section class="hero hero-min">
+      <section class="hero">
         <div class="wrap">
-          <div class="hero-row">
+          <div class="hero-grid">
             <div class="hero-copy">
-              <h1 class="hero-title hero-title-big">Can I Go?</h1>
-              <p class="hero-sub hero-sub-big">
-                Speichere und ordne deine Gegenstände – und bekomme Erinnerungen, wenn etwas fällig ist.
+              <h1 class="hero-title">Can I Go?</h1>
+              <p class="hero-sub">
+                'Speichere und ordne deine Gegenstände – und bekomme Erinnerungen, wenn etwas fällig ist.'
               </p>
-
-              <div class="hero-cta">
-                <button class="btn btn-primary" type="button" @click="goToAddAndFocus">Zum Hinzufügen</button>
-              </div>
             </div>
 
-            <aside class="hero-card">
-              <div class="hero-card-top">
-                <span class="mini-title">Quick Insight</span>
-                <span class="mini-badge">{{ liste.length }} Items</span>
+            <aside class="insight">
+              <div class="insight-top">
+                <span class="insight-kicker">Quick Insight</span>
+                <span class="insight-pill">{{ liste.length }} Items</span>
               </div>
-              <div class="hero-card-row"><span>Wichtig:</span><strong>{{ liste.filter(x => x.wichtigkeit === 'WICHTIG').length }}</strong></div>
-              <div class="hero-card-row"><span>Wegwerf-Datum:</span><strong>{{ liste.filter(x => x.wegwerfAm).length }}</strong></div>
-              <div class="hero-card-row"><span>Erinnerungen:</span><strong>{{ notifications.length }}</strong></div>
+              <div class="insight-row"><span>Wichtig</span><strong>{{ liste.filter(x => x.wichtigkeit === 'WICHTIG').length }}</strong></div>
+              <div class="insight-row"><span>Wegwerf-Datum</span><strong>{{ liste.filter(x => x.wegwerfAm).length }}</strong></div>
+              <div class="insight-row"><span>Erinnerungen</span><strong>{{ notifications.length }}</strong></div>
             </aside>
           </div>
         </div>
       </section>
 
       <main class="content">
-        <!-- Add -->
         <section id="add" class="panel panel-big">
-          <div class="panel-head panel-head-big">
+          <div class="panel-head">
             <h2>Neuen Gegenstand hinzufügen</h2>
             <p>Felder mit * sind Pflicht. Alles andere ist optional.</p>
           </div>
 
-          <div class="form-grid form-grid-big">
+          <div class="form-grid">
             <label class="field"><span>Name*</span><input v-model="name" placeholder="z.B. Hammer" /></label>
             <label class="field"><span>Ort*</span><input v-model="ort" placeholder="z.B. Werkbank" /></label>
 
@@ -298,154 +293,38 @@ onBeforeUnmount(() => {
             <label class="field"><span>Wunschpreis (€)</span><input v-model="wunschVerkaufspreis" type="number" step="0.01" /></label>
           </div>
 
-          <div v-if="fehler" class="alert form-alert">
+          <div v-if="fehler" class="alert">
             <strong>Hinweis:</strong> {{ fehler }}
           </div>
 
-          <div class="actions actions-big">
+          <div class="actions">
             <button class="btn btn-primary btn-big" type="button" @click="speichern">Hinzufügen</button>
           </div>
         </section>
 
-        <!-- Scroll section: “Pläne & Tipps” im Stil der Screenshots -->
-        <section class="panel panel-wide">
-          <div class="panel-head panel-head-big">
-            <h2>Pläne für Gegenstände</h2>
-            <p>Ideen, was du damit machen kannst – kurz, klar und schnell entscheidbar.</p>
-          </div>
+        <!-- FREE TYPOGRAPHY SECTION (no boxes, no borders) -->
+        <section class="scroll-notes">
+          <div class="notes-wrap">
+            <div class="notes-head">
+              <div class="notes-kicker">IDEEN</div>
+              <h2 class="notes-title">Was du mit Gegenständen machen kannst</h2>
+              <p class="notes-sub">Kein To-Do-Overload. Einfach klare Optionen – wie Sätze, die im Raum hängen.</p>
+            </div>
 
-          <div class="plans">
-            <article class="plan-row">
-              <div class="plan-left">
-                <div class="plan-title">Verkaufen</div>
-                <div class="plan-meta">Preis • Plattform • Fotos</div>
-                <span class="plan-tag">PLAN</span>
-              </div>
-              <div class="plan-text">
-                Erstelle eine kurze Anzeige, setze einen realistischen Wunschpreis und plane Abholung oder Versand.
-              </div>
-            </article>
-
-            <article class="plan-row">
-              <div class="plan-left">
-                <div class="plan-title">Spenden</div>
-                <div class="plan-meta">Abgabe • Organisation • Termin</div>
-                <span class="plan-tag">PLAN</span>
-              </div>
-              <div class="plan-text">
-                Wähle eine passende Stelle, bündle mehrere Dinge und setze dir einen festen Abgabetag.
-              </div>
-            </article>
-
-            <article class="plan-row">
-              <div class="plan-left">
-                <div class="plan-title">Wegwerfen</div>
-                <div class="plan-meta">Trennung • Restmüll • Recyclinghof</div>
-                <span class="plan-tag">PLAN</span>
-              </div>
-              <div class="plan-text">
-                Prüfe, ob es Sondermüll ist, trenne Materialien korrekt und plane den Entsorgungsweg.
-              </div>
-            </article>
-
-            <article class="plan-row">
-              <div class="plan-left">
-                <div class="plan-title">Reparieren</div>
-                <div class="plan-meta">Ersatzteile • Werkzeug • Zeitfenster</div>
-                <span class="plan-tag">PLAN</span>
-              </div>
-              <div class="plan-text">
-                Defekt notieren, Teile/Material beschaffen und ein kurzes Reparatur-Zeitfenster blocken.
-              </div>
-            </article>
-
-            <article class="plan-row">
-              <div class="plan-left">
-                <div class="plan-title">Upcycling</div>
-                <div class="plan-meta">Umbau • Material • Idee</div>
-                <span class="plan-tag">PLAN</span>
-              </div>
-              <div class="plan-text">
-                Nutze das Teil als Basis und gib ihm eine neue Funktion – mit kleinem Aufwand und klarer Idee.
-              </div>
-            </article>
-
-            <article class="plan-row">
-              <div class="plan-left">
-                <div class="plan-title">Verschenken</div>
-                <div class="plan-meta">Kontakt • Abholung • Übergabe</div>
-                <span class="plan-tag">PLAN</span>
-              </div>
-              <div class="plan-text">
-                Frage im Freundes-/Familienkreis, kläre Abholung und setze eine kurze Frist für Rückmeldung.
-              </div>
-            </article>
-
-            <article class="plan-row">
-              <div class="plan-left">
-                <div class="plan-title">Tauschen</div>
-                <div class="plan-meta">Tauschbörse • Wert • Bedingungen</div>
-                <span class="plan-tag">PLAN</span>
-              </div>
-              <div class="plan-text">
-                Lege fest, was du im Gegenzug brauchst, und nutze lokale Gruppen oder Tauschplattformen.
-              </div>
-            </article>
-
-            <article class="plan-row">
-              <div class="plan-left">
-                <div class="plan-title">Ausleihen statt besitzen</div>
-                <div class="plan-meta">Bedarf • Häufigkeit • Alternative</div>
-                <span class="plan-tag">PLAN</span>
-              </div>
-              <div class="plan-text">
-                Wenn du es selten nutzt: gib es ab und organisiere für den Bedarf eine Ausleih-Option.
-              </div>
-            </article>
-
-            <article class="plan-row">
-              <div class="plan-left">
-                <div class="plan-title">Einlagern</div>
-                <div class="plan-meta">Box • Beschriftung • Ort</div>
-                <span class="plan-tag">PLAN</span>
-              </div>
-              <div class="plan-text">
-                Lege eine Kiste an, beschrifte sie eindeutig und definiere einen festen Lagerplatz.
-              </div>
-            </article>
-
-            <article class="plan-row">
-              <div class="plan-left">
-                <div class="plan-title">Digitalisieren</div>
-                <div class="plan-meta">Scan • Backup • Ordnung</div>
-                <span class="plan-tag">PLAN</span>
-              </div>
-              <div class="plan-text">
-                Für Unterlagen oder Erinnerungsstücke: digital sichern, sauber benennen und ablegen.
-              </div>
-            </article>
-
-            <article class="plan-row">
-              <div class="plan-left">
-                <div class="plan-title">Set komplettieren</div>
-                <div class="plan-meta">Teile • Zubehör • Vollständigkeit</div>
-                <span class="plan-tag">PLAN</span>
-              </div>
-              <div class="plan-text">
-                Fehlende Teile ergänzen, dann als vollständiges Set verkaufen oder dauerhaft sinnvoll lagern.
-              </div>
-            </article>
-
-            <article class="plan-row">
-              <div class="plan-left">
-                <div class="plan-title">Umwidmen</div>
-                <div class="plan-meta">Neuer Zweck • Platz • Routine</div>
-                <span class="plan-tag">PLAN</span>
-              </div>
-              <div class="plan-text">
-                Gib dem Gegenstand einen klaren neuen Einsatzort und integriere ihn in deinen Alltag.
-              </div>
-            </article>
+            <div class="notes-cloud">
+              <p class="cloud c1"><span class="lead">Verkaufen</span> – Preis kurz prüfen, 2–3 gute Fotos machen, Abholung/Versand sofort festlegen.</p>
+              <p class="cloud c2"><span class="lead">Spenden</span> – In eine Kiste sammeln, Stelle auswählen, festen Abgabetermin setzen.</p>
+              <p class="cloud c3"><span class="lead">Schnellentscheidung</span> – 30 Tage ungenutzt? Heute entscheiden: behalten, verkaufen, spenden oder entsorgen.</p>
+              <p class="cloud c4"><span class="lead">Reparieren</span> – Defekt notieren, Teil besorgen, 30 Minuten testen. Wenn’s nicht klappt: Plan B.</p>
+              <p class="cloud c5"><span class="lead">Verschenken</span> – 1–2 konkrete Personen fragen, Frist setzen. Danach automatisch weiter.</p>
+              <p class="cloud c6"><span class="lead">Tauschen</span> – Klar sagen, was du suchst. Nur tauschen, wenn es wirklich passt.</p>
+              <p class="cloud c7"><span class="lead">Upcycling</span> – Nur starten, wenn Idee + Material da sind. Sonst wird es ein Dauerprojekt.</p>
+              <p class="cloud c8"><span class="lead">Entsorgen</span> – Richtig trennen, Sondermüll prüfen, in einem Gang erledigen.</p>
+              <p class="cloud c9"><span class="lead">Einlagern</span> – Box + Label + fester Platz. Dazu ein Datum, wann du es wieder prüfst.</p>
+              <p class="cloud c10"><span class="lead">Digitalisieren</span> – Scannen, sinnvoll benennen, Backup. Papier danach leichter reduzieren.</p>
+              <p class="cloud c11"><span class="lead">Set komplettieren</span> – Zubehör zusammensuchen und als Set anbieten: wirkt wertiger, geht schneller weg.</p>
+              <p class="cloud c12"><span class="lead">Umwidmen</span> – Neuer Zweck, neuer Ort. Wenn es trotzdem liegt: konsequent weitergeben.</p>
+            </div>
           </div>
         </section>
 
@@ -480,338 +359,320 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-/* ---------- Base / Theme ---------- */
-.page {
-  --br-bg: #070A12;
-  --br-ink: #E6F2FF;
-  --br-muted: rgba(230,242,255,.72);
-  --br-cyan: #29F3FF;
-  --br-border: rgba(41,243,255,.14);
-  --br-pink: #FF3DAE;
-  --br-glass: rgba(10,14,28,.65);
+.page{
+  --bg:#070A12;
+  --ink:#E6F2FF;
+  --muted:rgba(230,242,255,.72);
+  --border:rgba(41,243,255,.14);
+  --glass:rgba(10,14,28,.65);
+  --cyan:#29F3FF;
+  --pink:#FF3DAE;
 
-  min-height: 100vh;
-  color: var(--br-ink);
+  min-height:100vh;
+  color:var(--ink);
   background:
       radial-gradient(1100px 700px at 18% 20%, rgba(41,243,255,.14), transparent 55%),
       linear-gradient(180deg, rgba(7,10,18,1) 100%),
-      var(--br-bg);
+      var(--bg);
 }
 
-/* box sizing */
 .page :deep(*),
 .page :deep(*::before),
-.page :deep(*::after){
-  box-sizing: border-box;
-}
+.page :deep(*::after){ box-sizing:border-box; }
 
-/* ---------- Topbar ---------- */
-.topbar {
-  position: sticky;
-  top: 0;
-  z-index: 100;
+/* Topbar */
+.topbar{
+  position:sticky; top:0; z-index:100;
   background: rgba(7, 10, 18, 0.75);
   backdrop-filter: blur(15px);
-  border-bottom: 1px solid var(--br-border);
+  border-bottom: 1px solid var(--border);
 }
-
-.topbar-inner {
+.topbar-inner{
   padding: 10px 24px;
-  display: grid;
+  display:grid;
   grid-template-columns: 1fr auto 1fr;
-  align-items: center;
+  align-items:center;
   gap: 10px;
 }
-
-.nav-search-input {
-  width: 260px;
-  padding: 10px 16px;
-  border-radius: 12px;
-  border: 1px solid rgba(230,242,255,.12);
+.nav-search-input{
+  width:260px;
+  padding:10px 16px;
+  border-radius:12px;
+  border:1px solid rgba(230,242,255,.12);
   background: rgba(230,242,255,.05);
-  color: #fff;
-  outline: none;
+  color:#fff;
+  outline:none;
 }
-
-.topbar-center { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
-.topbar-right { display: flex; justify-content: flex-end; }
-
-.navlink {
-  color: var(--br-muted);
-  text-decoration: none;
-  font-size: 14px;
-  padding: 8px 18px;
-  border-radius: 999px;
-  transition: 0.2s;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.topbar-center{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+.topbar-right{ display:flex; justify-content:flex-end; }
+.navlink{
+  color: var(--muted);
+  text-decoration:none;
+  font-size:14px;
+  padding:8px 18px;
+  border-radius:999px;
+  transition:.2s;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
 }
-
-.navlink:hover,
-.navlink.active {
-  color: var(--br-cyan);
+.navlink:hover,.navlink.active{
+  color: var(--cyan);
   background: rgba(41,243,255,.10);
 }
+.as-btn{ background:none; border:none; cursor:pointer; }
+.login-btn{ border:1px solid rgba(41,243,255,.30) !important; color: var(--cyan); }
+.logout-btn{ color: var(--pink); }
 
-.as-btn { background: none; border: none; cursor: pointer; }
-.login-btn { border: 1px solid rgba(41,243,255,.30) !important; color: var(--br-cyan); }
-.logout-btn { color: var(--br-pink); }
-
-/* ---------- Shared Wrap / Content ---------- */
-.wrap{
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 0 20px;
-}
-
-.content {
-  max-width: 1100px;
-  margin: 0 auto;
+/* Layout */
+.wrap{ max-width:1100px; margin:0 auto; padding:0 20px; }
+.content{
+  max-width:1100px;
+  margin:0 auto;
   padding: 18px 20px 80px;
-  display: flex;
-  flex-direction: column;
+  display:flex;
+  flex-direction:column;
   gap: 20px;
 }
 
-.panel {
-  border-radius: 24px;
-  border: 1px solid var(--br-border);
-  background: var(--br-glass);
-  padding: 28px;
-  overflow: hidden; /* nie rauslaufen */
-}
-
-.panel-wide{
-  padding: 30px;
-}
-
-.panel-head{
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 16px;
-}
-.panel-head h2{ margin: 0; }
-.panel-head p{ margin: 0; color: var(--br-muted); }
-
-/* ---------- Hero ---------- */
-.hero-min{
-  padding: 54px 0 10px;
-}
-
-.hero-row{
-  display: grid;
+/* Hero */
+.hero{ padding: 56px 0 10px; }
+.hero-grid{
+  display:grid;
   grid-template-columns: 1fr 420px;
   gap: 32px;
-  align-items: start;
+  align-items:start;
 }
-
-.hero-copy{ max-width: 720px; }
-
-.hero-title-big{
-  font-size: 76px;
-  letter-spacing: .4px;
-  margin: 0;
+.hero-title{
+  font-size: 84px;
+  margin:0;
+  letter-spacing:.3px;
 }
-
-.hero-sub-big{
-  font-size: 18px;
-  line-height: 1.55;
-  max-width: 640px;
+.hero-sub{
   margin: 10px 0 0;
-  color: var(--br-muted);
+  max-width: 620px;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1.6;
 }
 
-.hero-cta{
-  margin-top: 18px;
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.hero-card {
-  border-radius: 24px;
-  border: 1px solid var(--br-border);
-  background: rgba(10,14,28,.50);
-  padding: 24px;
-}
-
-.hero-card-top{
-  display:flex;
-  justify-content:space-between;
+/* Buttons */
+.btn{
+  padding: 12px 24px;
+  border-radius: 999px;
+  font-weight: 800;
+  cursor:pointer;
+  border: 1px solid var(--border);
+  background: rgba(230,242,255,.06);
+  color: var(--ink);
+  display:inline-flex;
   align-items:center;
-  gap:12px;
-  margin-bottom:10px;
+  justify-content:center;
+  line-height: 1;
 }
+.btn-primary{
+  margin-top: 16px;
+  background: linear-gradient(90deg, rgba(41,243,255,.25), rgba(255,176,0,.15));
+  color:#fff;
+}
+.btn-big{ min-width: 190px; padding: 14px 28px; font-size: 14px; }
 
-.mini-title{ color: var(--br-muted); font-size: 12px; }
-.mini-badge{
+/* Insight */
+.insight{
+  border-radius: 24px;
+  border: 1px solid var(--border);
+  background: rgba(10,14,28,.50);
+  padding: 22px;
+}
+.insight-top{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  margin-bottom: 8px;
+}
+.insight-kicker{ font-size: 12px; color: var(--muted); }
+.insight-pill{
   font-size: 12px;
   padding: 4px 10px;
   border-radius: 999px;
   border: 1px solid rgba(41,243,255,.18);
   background: rgba(41,243,255,.08);
-  color: var(--br-ink);
 }
-
-.hero-card-row{
-  display:flex;
-  justify-content:space-between;
-  padding:12px 0;
-  border-top:1px solid rgba(230,242,255,.08);
+.insight-row{
+  display:flex; justify-content:space-between;
+  padding: 12px 0;
+  border-top: 1px solid rgba(230,242,255,.08);
 }
+.insight-row span{ color: rgba(230,242,255,.78); }
 
-/* ---------- Form ---------- */
-.panel-big{ padding: 34px; }
-.panel-head-big h2{ font-size: 26px; }
-.panel-head-big p{ font-size: 14px; }
+/* Panel (Add) */
+.panel{
+  border-radius: 24px;
+  border: 1px solid var(--border);
+  background: var(--glass);
+  padding: 34px;
+  overflow:hidden;
+}
+.panel-big{ padding: 38px; }
+.panel-head{ display:flex; flex-direction:column; gap:6px; margin-bottom: 18px; }
+.panel-head h2{ margin:0; font-size: 28px; }
+.panel-head p{ margin:0; color: var(--muted); }
 
 .form-grid{
   display:grid;
   grid-template-columns: repeat(2, minmax(0,1fr));
   gap: 18px;
   align-items:start;
-  padding-bottom: 8px;
 }
-
-.field{
-  display:flex;
-  flex-direction:column;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--br-muted);
-  min-width: 0;
-}
-
-input, select{
-  width: 100%;
+.field{ display:flex; flex-direction:column; gap:8px; font-size:13px; color: var(--muted); }
+input,select{
+  width:100%;
   padding: 12px 14px;
   border-radius: 12px;
   border: 1px solid rgba(230,242,255,.15);
   background: rgba(230,242,255,.05);
-  color: #fff;
-  outline: none;
+  color:#fff;
+  outline:none;
   min-height: 44px;
 }
-
-input:focus, select:focus{
+input:focus,select:focus{
   border-color: rgba(41,243,255,.35);
   box-shadow: 0 0 0 3px rgba(41,243,255,.10);
 }
-
 .actions{
   display:flex;
-  align-items:center;
-  gap: 12px;
   margin-top: 22px;
   padding-top: 16px;
   border-top: 1px solid rgba(230,242,255,.10);
 }
-
-.btn{
-  padding: 12px 24px;
-  border-radius: 999px;
-  font-weight: 700;
-  cursor: pointer;
-  border: 1px solid var(--br-border);
-  background: rgba(230,242,255,.06);
-  color: var(--br-ink);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-}
-
-.btn-primary{
-  background: linear-gradient(90deg, rgba(41,243,255,.25), rgba(255,176,0,.15));
-  color: #fff;
-}
-
-.btn-big{
-  min-width: 190px;
-  padding: 14px 28px;
-  font-size: 14px;
-}
-
-/* ---------- Plans (scroll rows like inspiration) ---------- */
-.plans{
-  display: grid;
-  gap: 12px;
-}
-
-.plan-row{
-  border-radius: 18px;
-  border: 1px solid rgba(230,242,255,.10);
-  background: rgba(10,14,28,.30);
-  padding: 18px;
-  display: grid;
-  grid-template-columns: 280px 1fr;
-  gap: 18px;
-  align-items: start;
-}
-
-.plan-left{
-  display: grid;
-  gap: 6px;
-  align-content: start;
-}
-
-.plan-title{
-  font-weight: 900;
-  font-size: 18px;
-  letter-spacing: .2px;
-}
-
-.plan-meta{
-  color: rgba(230,242,255,.55);
-  font-size: 13px;
-}
-
-.plan-tag{
-  justify-self: start;
-  margin-top: 4px;
-  font-size: 12px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(41,243,255,.18);
-  background: rgba(41,243,255,.08);
-  color: rgba(230,242,255,.92);
-}
-
-.plan-text{
-  color: rgba(230,242,255,.85);
-  line-height: 1.6;
-  font-size: 14px;
-  max-width: 680px;
-}
-
-/* ---------- Alerts / Footer ---------- */
 .alert{
+  margin-top: 16px;
   padding: 16px;
   border-radius: 12px;
   background: rgba(255, 106, 0, 0.10);
   border: 1px solid rgba(255, 106, 0, 0.20);
   color: #ffd0b0;
-  margin-top: 16px;
 }
 
+/* Footer */
 .footer{
   text-align:center;
-  padding: 40px;
+  padding: 40px 0 0;
   font-size: 12px;
   color: rgba(230,242,255, 0.35);
 }
 
-/* ---------- Responsive ---------- */
+/* ---------------- FREE TYPO “QUOTES IN SPACE” ---------------- */
+.scroll-notes{
+  padding-top: 10px;
+}
+
+.notes-wrap{
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 10px 20px 0;
+}
+
+.notes-head{
+  padding: 26px 0 12px;
+}
+
+.notes-kicker{
+  font-size: 12px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: rgba(230,242,255,.55);
+  margin-bottom: 10px;
+}
+
+.notes-title{
+  margin: 0;
+  font-size: 34px;
+  line-height: 1.15;
+}
+
+.notes-sub{
+  margin: 12px 0 0;
+  max-width: 760px;
+  color: rgba(230,242,255,.70);
+  font-size: 16px;
+  line-height: 1.65;
+}
+
+/* RANDOM WALL */
+.notes-cloud{
+  position: relative;
+  margin-top: 18px;
+  min-height: 760px;         /* mehr Fläche => weniger Überlappung */
+  padding: 30px 0 260px;     /* Platz für top>100% */
+}
+
+.cloud{
+  position: absolute;
+  margin: 0;
+  max-width: 560px;
+  font-size: 20px;
+  line-height: 2.05;         /* mehr Abstand in sich */
+  color: rgba(230,242,255,.86);
+}
+
+.lead{
+  font-weight: 900;
+  color: rgba(230,242,255,.96);
+}
+
+/* Positionen */
+.c1{ left: 4%;  top: 0%; }
+.c2{ right: 4%; top: 6%; text-align:right; }
+
+.c3{ left: 18%; top: 20%; max-width: 720px; font-size: 21px; line-height: 2.15; }
+.c4{ right: 10%; top: 31%; text-align:right; }
+
+.c5{ left: 6%;  top: 44%; }
+.c6{ right: 6%; top: 52%; text-align:right; }
+
+.c7{ left: 20%; top: 62%; max-width: 700px; line-height: 2.15; }
+.c8{ right: 18%; top: 73%; text-align:right; }
+
+.c9{ left: 5%;  top: 84%; }
+.c10{ right: 5%; top: 90%; text-align:right; }
+
+.c11{ left: 22%; top: 102%; max-width: 760px; line-height: 2.15; }
+.c12{ right: 22%; top: 114%; text-align:right; }
+
+/* Mobile: sauber untereinander */
 @media (max-width: 980px){
-  .topbar-inner { grid-template-columns: 1fr; }
-  .nav-search-input { width: 100%; }
-  .hero-row { grid-template-columns: 1fr; }
-  .hero-title-big { font-size: 52px; }
-  .hero-sub-big { font-size: 16px; }
-  .form-grid { grid-template-columns: 1fr; }
-  .plan-row { grid-template-columns: 1fr; }
+  .notes-cloud{ min-height: auto; padding: 18px 0 0; }
+  .cloud{
+    position: static;
+    max-width: none;
+    font-size: 18px;
+    line-height: 1.85;
+    text-align: left !important;
+    margin: 0 0 16px;
+  }
+}
+
+/* Responsive: auf Mobile wieder sauber untereinander (ohne Chaos) */
+@media (max-width: 980px){
+  .topbar-inner{ grid-template-columns: 1fr; }
+  .nav-search-input{ width:100%; }
+  .hero-grid{ grid-template-columns: 1fr; }
+  .hero-title{ font-size: 56px; }
+  .hero-sub{ font-size: 16px; }
+  .form-grid{ grid-template-columns: 1fr; }
+
+  .notes-title{ font-size: 28px; }
+
+  .notes-cloud{
+    min-height: auto;
+    padding: 18px 0 0;
+  }
+  .cloud{
+    position: static;
+    max-width: none;
+    font-size: 18px;
+    line-height: 1.85;
+    text-align: left !important;
+    margin: 0 0 16px;
+  }
 }
 </style>
